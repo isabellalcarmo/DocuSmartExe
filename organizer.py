@@ -272,7 +272,9 @@ def simulate_organization(folder_path, categories_dict, progress_callback=None):
 
     files_to_organize = []
     organized_structure = {}
+
     dates = None
+    date_str = "Nenhuma"
 
     files_in_folder = [f for f in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, f))]
 
@@ -305,6 +307,10 @@ def simulate_organization(folder_path, categories_dict, progress_callback=None):
         if classified_category == "Outros":
             title_keyword_category, keyword_confidence = classify_by_filename_keywords(filename)
             print(f"Palavra-chave: {title_keyword_category}, Confiança: {keyword_confidence}")
+
+            if title_keyword_category not in categories_dict and title_keyword_category != "Outros":
+                title_keyword_category = "Outros"
+                keyword_confidence = 0.0
 
             if keyword_confidence >= TITLE_KEYWORD_CONFIDENCE:
                 classified_category = title_keyword_category
