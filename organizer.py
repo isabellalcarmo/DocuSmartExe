@@ -68,7 +68,7 @@ def preprocess_image(pil_image):
 
 def extract_from_pdf(file_path):
     text = ""
-    max_pages = 15
+    max_pages = 50
     try:
         doc = fitz.open(file_path)
         num_pages_to_process = min(doc.page_count, max_pages)
@@ -96,10 +96,18 @@ def extract_from_pdf(file_path):
 
 
 def extract_from_docx(file_path):
+    text_content = []
+    max_paragraphs = 500
     try:
         doc = docx.Document(file_path)
-        text = "\n".join([paragraph.text for paragraph in doc.paragraphs])
-        return text.strip()
+        paragraphs_processed = 0
+        for paragraph in doc.paragraphs:
+            if paragraphs_processed >= max_paragraphs:
+                break
+            text_content.append(paragraph.text)
+            paragraphs_processed += 1
+
+        return "\n".join(text_content).strip()
     except Exception:
         return ""
 
@@ -121,21 +129,26 @@ def extract_from_image(file_path):
         return ""
 
 
-def extract_from_pptx(file_path: str) -> str:
-    text = []
+def extract_from_pptx(file_path):
+    text_content = []
     try:
         prs = Presentation(file_path)
-        for i, slide in enumerate(prs.slides):
-            text.append(f"--- Slide {i+1} ---")
+        slides_processed = 0
+        for slide in prs.slides:
+            if max_slides is not None and slides_processed >= max_slides:
+                break
+            text_content.append(f"--- Slide {slides_processed+1} ---")
             for shape in slide.shapes:
                 if hasattr(shape, "text"):
-                    text.append(shape.text)
-        return "\n".join(text).strip()
+                    text_content.append(shape.text)
+            slides_processed += 1
+
+        return "\n".join(text_content).strip()
     except Exception:
         return ""
 
 
-def extract_from_html(file_path: str) -> str:
+def extract_from_html(file_path):
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
             html_content = f.read()
@@ -232,11 +245,11 @@ def classify_content_local(text, categories_embeddings_dict):
 def classify_by_filename_keywords(filename):
     clean_filename = os.path.splitext(filename)[0].lower()
 
-    if re.search(r'extrato|fatura|boleto|conta|holerite|imposto|recibo', clean_filename):
+    if re.search(r'extrato|fatura|boleto|conta|holerite|imposto|recibo|nota fiscal', clean_filename):
         return "Financeiro", 1.0
     elif re.search(r'rg|cpf|cnh|passaporte|certidao|eleitor|nascimento|casamento|identidade', clean_filename):
         return "Pessoal", 1.0
-    elif re.search(r'contrato|peticao|notificacao|judicial|acordo|escritura', clean_filename):
+    elif re.search(r'contrato|peticao|notificacao|judicial|acordo|escritura|procuracao', clean_filename):
         return "Jurídico", 1.0
     elif re.search(r'exame|laudo|receita|medico|vacina|consulta|historico|saude', clean_filename):
         return "Saúde", 1.0
@@ -259,6 +272,7 @@ def simulate_organization(folder_path, categories_dict, progress_callback=None):
 
     files_to_organize = []
     organized_structure = {}
+    dates = None
 
     files_in_folder = [f for f in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path, f))]
 
@@ -271,7 +285,7 @@ def simulate_organization(folder_path, categories_dict, progress_callback=None):
     image_extensions = ['jpg', 'jpeg', 'png', 'bmp', 'gif', 'tiff']
 
     TITLE_KEYWORD_CONFIDENCE = 0.9
-    TITLE_SBERT_THRESHOLD = 0.7
+    TITLE_SBERT_THRESHOLD = 0.6
     CONTENT_SBERT_THRESHOLD = 0.4
 
     for i, filename in enumerate(files_in_folder):
@@ -279,6 +293,9 @@ def simulate_organization(folder_path, categories_dict, progress_callback=None):
         extension = filename.split('.')[-1].lower()
         text_content = extract_text_from_file(file_path)
 
+        # MAX_SBERT_TEXT_LENGTH = 5000
+        # truncated_text_content = text_content[:MAX_SBERT_TEXT_LENGTH] if text_content else ""
+        # text_content = truncated_text_content
         classified_category = "Outros"
 
         if extension in image_extensions:
@@ -311,10 +328,10 @@ def simulate_organization(folder_path, categories_dict, progress_callback=None):
                 else:
                     classified_category = "Outros"
                     print("Sem classificação SBERT acima do threshold, mantendo 'Outros'")
-        print("\n")
+            print("\n")
 
-        dates = extract_dates(text_content)
-        date_str = ", ".join([d.strftime('%d/%m/%Y') for d in dates if d]) if dates else "Nenhuma"
+            dates = extract_dates(text_content)
+            date_str = ", ".join([d.strftime('%d/%m/%Y') for d in dates if d]) if dates else "Nenhuma"
 
         files_to_organize.append((filename, classified_category, date_str))
 
