@@ -11,32 +11,30 @@ from sentence_transformers import SentenceTransformer, util
 import CTkMessagebox
 import organizer
 import threading
-
-# --- Configuração do Modelo de Linguagem (com ajuste para PyInstaller) ---
 import sys
 import os
 
-# --- Classe Principal do Aplicativo ---
+
 class App(ctk.CTk):
     def __init__(self):
         super().__init__()
 
         self.title("DocuSmart - Organizador de Documentos")
         self.geometry("900x700")
-        
+
         self.big_font = ctk.CTkFont(family="Arial", size=18, weight="bold")
         self.medium_font = ctk.CTkFont(family="Arial", size=16)
         self.small_font = ctk.CTkFont(family="Arial", size=14)
-        
+
         self.primary_color = "#3498db"
         self.secondary_color = "#2ecc71"
         self.cancel_color = "#e74c3c"
         self.text_color = "#2c3e50"
         self.bg_color = "#ecf0f1"
         self.frame_color = "#ffffff"
-        # Cores para o log
-        self.log_bg_color = "#f8f8f8" # Um cinza bem claro, quase branco
-        self.log_text_color = "#333333" # Um cinza escuro para o texto
+
+        self.log_bg_color = "#f8f8f8"
+        self.log_text_color = "#333333"
 
         self.configure(fg_color=self.bg_color)
 
@@ -45,10 +43,11 @@ class App(ctk.CTk):
         self.grid_rowconfigure(1, weight=1) 
 
         self.default_categories = {
-            "Pessoal": "Documentos de identificação e registro civil, como RG (Registro Geral), CPF (Cadastro de Pessoa Física), CNH (Carteira Nacional de Habilitação), certidão de nascimento, certidão de casamento, passaporte, título de eleitor. Inclui também fotografias e outros registros pessoais de caráter não profissional ou financeiro.",
+            "Pessoal": "Documentos de identificação e registro civil, como RG (Registro Geral), CPF (Cadastro de Pessoa Física), CNH (Carteira Nacional de Habilitação), certidão de nascimento, certidão de casamento, passaporte, título de eleitor.",
             "Saúde": "Registros e informações médicas, como resultados de exames laboratoriais (sangue, urina, imagem como raio-x, ultrassom, ressonância), laudos médicos, receitas de medicamentos, atestados médicos, relatórios de consultas, histórico de vacinação e comprovantes de planos de saúde ou despesas médicas.",
-            "Finanças": "Comprovantes e extratos relacionados a transações monetárias e obrigações financeiras. Exemplos incluem boletos bancários, contas de consumo (água, luz, gás, telefone, internet), faturas de cartão de crédito, extratos bancários, comprovantes de pagamento, holerites (contracheques), declarações de imposto de renda e comprovantes de investimentos.",
-            "Acadêmico": "Material educacional e documentos de formação. Isso abrange diplomas de graduação ou pós-graduação, certificados de cursos (livres, técnicos, extensão), histórico escolar ou acadêmico, anotações de aula, trabalhos de faculdade, artigos científicos, apostilas e comprovantes de matrícula ou conclusão de estudos.",
+            "Financeiro": "Comprovantes e extratos relacionados a transações monetárias e obrigações financeiras. Exemplos incluem boletos bancários, contas de consumo (água, luz, gás, telefone, internet), faturas de cartão de crédito, extratos bancários, comprovantes de pagamento, holerites (contracheques), declarações de imposto de renda e comprovantes de investimentos.",
+            "Jurídico": "Documentos legais, como procurações, contratos sociais, petições, contratos de trabalho, termos de serviço, acordos, notificações judiciais.",
+            "Imagens": "Fotos, gráficos, capturas de tela, digitalizações de documentos, ilustrações.",
             "Outros": "Documentos que não se encaixam claramente nas categorias anteriores ou que possuem um propósito muito diverso. Inclui arquivos temporários, downloads variados, documentos sem identificação clara de tema, ou itens que aguardam uma classificação manual."
         }
         self.current_categories = self.default_categories.copy()
@@ -65,7 +64,6 @@ class App(ctk.CTk):
             text_color=self.text_color
         )
         self.instruction_label.grid(row=0, column=0, columnspan=2, padx=10, pady=10, sticky="w")
-
 
         self.select_folder_button = ctk.CTkButton(
             self.control_frame,
@@ -112,7 +110,6 @@ class App(ctk.CTk):
         )
         self.instruction_label_3.grid(row=5, column=0, columnspan=2, padx=10, pady=10, sticky="w")
 
-
         self.preview_organize_button = ctk.CTkButton(
             self.control_frame,
             text="🔍 Visualizar Organização",
@@ -131,12 +128,12 @@ class App(ctk.CTk):
             mode="determinate", 
             height=20, 
             corner_radius=5,
-            fg_color="#ecf0f1", # Cor de fundo da barra
-            progress_color="#2f714b" # Cor do preenchimento da barra
+            fg_color="#ecf0f1",
+            progress_color="#2f714b"
         )
         self.progress_bar.grid(row=7, column=0, padx=10, pady=5, sticky="ew")
-        self.progress_bar.set(0) # Inicializa a barra em 0
-        self.progress_bar.grid_remove() # Esconde a barra inicialmente
+        self.progress_bar.set(0)
+        self.progress_bar.grid_remove()
 
         # LABEL DE STATUS DA BARRA DE PROGRESSO
         self.progress_label = ctk.CTkLabel(
@@ -146,28 +143,25 @@ class App(ctk.CTk):
             text_color=self.text_color
         )
         self.progress_label.grid(row=8, column=0, padx=10, pady=2, sticky="w")
-        self.progress_label.grid_remove() # Esconde o label inicialmente
+        self.progress_label.grid_remove()
 
-        # Área de log/status
         self.log_textbox = ctk.CTkTextbox(self, width=600, height=300, 
                                         font=self.small_font, 
-                                        text_color=self.log_text_color, # Cor do texto do log
-                                        fg_color=self.log_bg_color) # Cor de fundo do log
+                                        text_color=self.log_text_color,
+                                        fg_color=self.log_bg_color)
         self.log_textbox.grid(row=1, column=0, padx=30, pady=10, sticky="nsew")
         self.log_textbox.insert("end", "Bem-vindo ao DocuSmart!\nSiga os passos acima para organizar seus documentos.\n")
         self.log_textbox.configure(state="disabled")
 
     def log_message(self, message):
         self.log_textbox.configure(state="normal")
-        # Adicionar uma linha extra de quebra para dar mais espaçamento visual
+
         self.log_textbox.insert("end", message + "\n\n") 
         self.log_textbox.see("end")
         self.log_textbox.configure(state="disabled")
         self.update_idletasks()
 
     def update_progress(self, current, total):
-        # Esta função será chamada pelo thread de simulação/organização
-        # Usamos after para garantir que a atualização da UI ocorra no thread principal
         self.after(10, lambda: self._update_progress_ui(current, total))
 
     def _update_progress_ui(self, current, total):
@@ -175,7 +169,7 @@ class App(ctk.CTk):
             progress_value = current / total
             self.progress_bar.set(progress_value)
             self.progress_label.configure(text=f"Processando {current}/{total} arquivos...")
-            self.update_idletasks() # Força a atualização da UI
+            self.update_idletasks()
 
     def select_folder(self):
         folder_selected = ctk.filedialog.askdirectory()
@@ -184,12 +178,10 @@ class App(ctk.CTk):
             self.folder_to_organize = folder_selected
             self.preview_organize_button.configure(state="normal")
             self.log_message(f"Pasta '{folder_selected}' selecionada com sucesso.")
-            # Esconde a barra de progresso e o label ao selecionar uma nova pasta
             self.progress_bar.grid_remove()
             self.progress_label.grid_remove()
-            self.progress_bar.set(0) # Reseta o progresso
+            self.progress_bar.set(0)
             self.progress_label.configure(text="Aguardando...")
-
         else:
             self.selected_folder_path.configure(text="Nenhuma pasta selecionada.")
             self.preview_organize_button.configure(state="disabled")
@@ -208,64 +200,58 @@ class App(ctk.CTk):
 
         self.log_message("Simulando organização para prévia...")
         self.preview_organize_button.configure(state="disabled")
-        self.select_folder_button.configure(state="disabled") # Desabilita outros botões
+        self.select_folder_button.configure(state="disabled")
         self.manage_categories_button.configure(state="disabled")
 
-
-        # Mostra a barra de progresso e o label
         self.progress_bar.grid()
         self.progress_label.grid()
         self.progress_bar.set(0)
         self.progress_label.configure(text="Iniciando processamento de arquivos...")
-        self.update_idletasks() # Força a atualização para exibir a barra
+        self.update_idletasks()
 
-        # Usa threading para não congelar a UI durante a simulação
         self.simulation_thread = threading.Thread(target=self._run_simulation_in_thread)
         self.simulation_thread.start()
 
     def _run_simulation_in_thread(self):
-        # Esta função roda em um thread separado
         files_info, structure_info = organizer.simulate_organization(
             self.folder_to_organize, 
             self.current_categories, 
-            self.update_progress # Passa a função de callback para o organizer
+            self.update_progress
         )
-        
-        # Volta para o thread principal para atualizar a UI após a simulação
         self.after(100, lambda: self._post_simulation_ui_update(files_info, structure_info))
 
     def _post_simulation_ui_update(self, files_info, structure_info):
-        # Esconde a barra de progresso e o label após a simulação
         self.progress_bar.grid_remove()
         self.progress_label.grid_remove()
-        self.progress_bar.set(0) # Reseta o progresso
+        self.progress_bar.set(0)
         self.progress_label.configure(text="Aguardando...")
 
         if not files_info and not structure_info:
             self.log_message("Nenhum arquivo processável encontrado na pasta.")
             self.preview_organize_button.configure(state="normal")
-            self.select_folder_button.configure(state="normal") # Reabilita botões
+            self.select_folder_button.configure(state="normal")
             self.manage_categories_button.configure(state="normal")
             return
 
-        preview_window = OrganizationPreview(self, files_info, structure_info)
+        preview_window = OrganizationPreview(self, files_info, structure_info, list(self.current_categories.keys()))
         preview_window.grab_set()
-        self.wait_window(preview_window) # Espera a janela de prévia fechar
+        self.wait_window(preview_window)
+
+        final_files_info = preview_window.files_info 
 
         if hasattr(preview_window, 'confirmed') and preview_window.confirmed:
             self.log_message("Prévia confirmada. Iniciando organização real...")
-            self._execute_organization_real(files_info)
+            self._execute_organization_real(final_files_info)
         else:
             self.log_message("Organização cancelada pelo usuário ou janela fechada.")
-        
+
         self.preview_organize_button.configure(state="normal")
-        self.select_folder_button.configure(state="normal") # Reabilita botões
+        self.select_folder_button.configure(state="normal")
         self.manage_categories_button.configure(state="normal")
 
     def _execute_organization_real(self, files_info):
         self.log_message("Iniciando a movimentação dos arquivos...")
-        
-        # Mostra a barra de progresso novamente para a organização real
+
         self.progress_bar.grid()
         self.progress_label.grid()
         self.progress_bar.set(0)
@@ -281,10 +267,10 @@ class App(ctk.CTk):
 
         for i, (filename, classified_category, _) in enumerate(files_info):
             original_file_path = os.path.join(self.folder_to_organize, filename)
-            
-            if "Não processável" in classified_category:
+
+            if "(Não processável)" in classified_category:
                 self.log_message(f"Pulando '{filename}' (Não processável).")
-                self.update_progress(i + 1, total_files_to_move) # Atualiza o progresso mesmo para pulados
+                self.update_progress(i + 1, total_files_to_move)
                 continue
 
             target_category_path = os.path.join(self.folder_to_organize, classified_category)
@@ -299,12 +285,12 @@ class App(ctk.CTk):
             except Exception as e:
                 self.log_message(f"Erro ao mover '{filename}': {e}")
             
-            self.update_progress(i + 1, total_files_to_move) # Atualiza o progresso
+            self.update_progress(i + 1, total_files_to_move)
 
         self.log_message("Organização finalizada com sucesso!")
-        self.progress_bar.grid_remove() # Esconde a barra de progresso
-        self.progress_label.grid_remove() # Esconde o label de progresso
-        self.progress_bar.set(0) # Reseta o progresso
+        self.progress_bar.grid_remove()
+        self.progress_label.grid_remove()
+        self.progress_bar.set(0)
         self.progress_label.configure(text="Aguardando...")
 
     def open_category_manager(self):
@@ -316,7 +302,7 @@ class App(ctk.CTk):
             self.current_categories = category_manager_window.result_categories
             self.log_message("Categorias atualizadas pelo usuário.")
 
-# --- Classe para Gerenciamento de Categorias (com aprimoramentos visuais) ---
+
 class CategoryManager(ctk.CTkToplevel):
     def __init__(self, master):
         super().__init__(master)
@@ -327,6 +313,7 @@ class CategoryManager(ctk.CTkToplevel):
         self.master = master
         self.current_categories = master.current_categories.copy()
         self.original_categories = master.current_categories.copy()
+        self.default_categories = master.default_categories 
 
         self.big_font = master.big_font
         self.medium_font = master.medium_font
@@ -404,28 +391,37 @@ class CategoryManager(ctk.CTkToplevel):
     def load_categories_to_display(self):
         for widget in self.category_list_frame.winfo_children():
             widget.destroy()
-        
         self.category_widgets = {}
 
         row_idx = 0
         for category_name, description in self.current_categories.items():
-            name_label = ctk.CTkLabel(self.category_list_frame, text=category_name, 
-                                    font=self.medium_font, text_color=self.text_color)
+            name_label = ctk.CTkLabel(self.category_list_frame, text=category_name, font=self.medium_font, text_color=self.text_color)
             name_label.grid(row=row_idx, column=0, padx=5, pady=5, sticky="w")
 
-            description_entry = ctk.CTkEntry(self.category_list_frame, width=300, font=self.small_font)
-            description_entry.insert(0, description)
+            description_entry = ctk.CTkTextbox(self.category_list_frame, width=300, font=self.small_font)
+            description_entry.insert("0.0", description)
             description_entry.grid(row=row_idx, column=1, padx=5, pady=5, sticky="ew")
 
-            if category_name.lower() != "outros":
-                remove_button = ctk.CTkButton(self.category_list_frame, text="Remover", 
+            is_default_category = category_name in self.default_categories
+
+            if is_default_category:
+                description_entry.configure(state="disabled", text_color="gray", fg_color="#e0e0e0")
+
+                if category_name.lower() == "outros" or category_name.lower() == "imagens":
+                    ctk.CTkLabel(self.category_list_frame, text=" (Essencial)", 
+                                font=self.small_font, text_color="gray").grid(row=row_idx, column=2, padx=5, pady=5, sticky="e")
+                else:
+                    remove_button = ctk.CTkButton(self.category_list_frame, text="Remover", 
                                                 command=lambda c=category_name: self.remove_category(c),
                                                 width=80, fg_color=self.cancel_color, hover_color="darkred",
                                                 font=self.small_font)
-                remove_button.grid(row=row_idx, column=2, padx=5, pady=5, sticky="e")
+                    remove_button.grid(row=row_idx, column=2, padx=5, pady=5, sticky="e")
             else:
-                ctk.CTkLabel(self.category_list_frame, text=" (Essencial)", 
-                            font=self.small_font, text_color="gray").grid(row=row_idx, column=2, padx=5, pady=5, sticky="e")
+                remove_button = ctk.CTkButton(self.category_list_frame, text="Remover", 
+                                            command=lambda c=category_name: self.remove_category(c),
+                                            width=80, fg_color=self.cancel_color, hover_color="darkred",
+                                            font=self.small_font)
+                remove_button.grid(row=row_idx, column=2, padx=5, pady=5, sticky="e")
 
             self.category_widgets[category_name] = {
                 "name_label": name_label,
@@ -455,8 +451,8 @@ class CategoryManager(ctk.CTkToplevel):
         self.load_categories_to_display()
 
     def remove_category(self, category_name):
-        if category_name.lower() == "outros":
-            self.master.log_message("Não é possível remover a categoria 'Outros', ela é essencial.")
+        if category_name.lower() == "outros" or category_name.lower() == "imagens":
+            self.master.log_message("Não é possível remover a categoria 'Outros' ou 'Imagens', elas são essenciais.")
             return
 
         msg_box = CTkMessagebox.CTkMessagebox(
@@ -489,27 +485,39 @@ class CategoryManager(ctk.CTkToplevel):
             self.load_categories_to_display()
 
     def save_and_close(self):
-        for category_name, widgets in self.category_widgets.items():
-            if "description_entry" in widgets: 
-                self.current_categories[category_name] = widgets["description_entry"].get().strip()
-        
-        if "Outros" not in self.current_categories or not self.current_categories["Outros"]:
-            self.current_categories["Outros"] = self.master.default_categories.get("Outros", "documentos diversos que não se encaixam nas categorias.")
+            for category_name, widgets in self.category_widgets.items():
+                if "description_entry" in widgets:
+                    if category_name in self.default_categories:
+                        self.current_categories[category_name] = self.default_categories[category_name]
+                    else:
+                        self.current_categories[category_name] = widgets["description_entry"].get("0.0", "end").strip()
 
-        self.result_categories = self.current_categories
-        self.destroy()
+            if "Outros" not in self.current_categories or not self.current_categories["Outros"]:
+                self.current_categories["Outros"] = self.master.default_categories.get("Outros", "documentos diversos que não se encaixam nas categorias.")
+            elif "Outros" in self.current_categories and self.current_categories["Outros"] == "":
+                self.current_categories["Outros"] = self.master.default_categories.get("Outros", "documentos diversos que não se encaixam nas categorias.")
 
-# --- Classe: Janela de Prévia da Organização (com aprimoramentos visuais) ---
+            if "Imagens" not in self.current_categories or not self.current_categories["Imagens"]:
+                self.current_categories["Imagens"] = self.master.default_categories.get("Imagens", "Fotos, gráficos, capturas de tela, digitalizações de documentos, ilustrações.")
+            elif "Imagens" in self.current_categories and self.current_categories["Imagens"] == "":
+                self.current_categories["Imagens"] = self.master.default_categories.get("Imagens", "Fotos, gráficos, capturas de tela, digitalizações de documentos, ilustrações.")
+
+            self.result_categories = self.current_categories
+            self.destroy()
+
+
 class OrganizationPreview(ctk.CTkToplevel):
-    def __init__(self, master, files_info, structure_info):
+    def __init__(self, master, files_info, structure_info, available_categories):
         super().__init__(master)
         self.title("Prévia da Organização")
         self.geometry("1000x750")
         self.resizable(False, False)
 
         self.master = master
-        self.files_info = files_info
+
+        self.files_info = list(files_info) 
         self.structure_info = structure_info
+        self.available_categories = available_categories
         self.confirmed = False
 
         self.big_font = master.big_font
@@ -537,6 +545,7 @@ class OrganizationPreview(ctk.CTkToplevel):
         self.preview_frame = ctk.CTkScrollableFrame(self, fg_color=self.frame_color, corner_radius=10)
         self.preview_frame.grid(row=1, column=0, padx=20, pady=10, sticky="nsew")
         self.preview_frame.grid_columnconfigure(0, weight=1)
+        self.preview_frame.grid_columnconfigure(1, weight=0)
 
         self._display_preview_content()
 
@@ -554,43 +563,63 @@ class OrganizationPreview(ctk.CTkToplevel):
                                         fg_color=self.cancel_color, hover_color="darkred")
         self.cancel_button.grid(row=0, column=1, padx=10, pady=10, sticky="ew")
 
+    def _rebuild_structure_info(self):
+        """Reconstrói structure_info baseada na files_info atual."""
+        new_structure_info = {cat: [] for cat in self.available_categories}
+        new_structure_info["Outros (Não processável)"] = []
+
+        for filename, category, _ in self.files_info:
+            if category not in new_structure_info:
+                new_structure_info[category] = []
+            new_structure_info[category].append(filename)
+        self.structure_info = new_structure_info
+
     def _display_preview_content(self):
         for widget in self.preview_frame.winfo_children():
             widget.destroy()
-        
+
         row_idx = 0
-        
+
         ctk.CTkLabel(self.preview_frame, text="Estrutura de Pastas e Conteúdo Estimado:", 
-                    font=self.medium_font, text_color=self.text_color).grid(row=row_idx, column=0, padx=5, pady=5, sticky="w")
+                    font=self.medium_font, text_color=self.text_color).grid(row=row_idx, column=0, columnspan=2, padx=5, pady=5, sticky="w")
         row_idx += 1
+
+        self._rebuild_structure_info()
 
         sorted_categories = sorted(self.structure_info.keys())
 
         for category in sorted_categories:
             files_in_category = self.structure_info.get(category, [])
-            
+
             ctk.CTkLabel(self.preview_frame, text=f"📂 {category}/", 
-                        font=self.medium_font, text_color=self.primary_color).grid(row=row_idx, column=0, padx=15, pady=2, sticky="w")
+                        font=self.medium_font, text_color=self.primary_color).grid(row=row_idx, column=0, columnspan=2, padx=15, pady=2, sticky="w")
             row_idx += 1
 
             if files_in_category:
                 for file_name in files_in_category:
                     file_display_text = f"    📄 {file_name}"
-                    if "(Não processável)" in file_name:
+                    
+                    if "(Não processável)" in file_name or "(Não processável)" in category:
                         file_display_text = f"    🚫 {file_name}"
                         ctk.CTkLabel(self.preview_frame, text=file_display_text, 
                                     font=self.small_font, text_color="orange").grid(row=row_idx, column=0, padx=15, pady=1, sticky="w")
                     else:
                         ctk.CTkLabel(self.preview_frame, text=file_display_text, 
                                     font=self.small_font, text_color=self.text_color).grid(row=row_idx, column=0, padx=15, pady=1, sticky="w")
+
+                        modify_button = ctk.CTkButton(self.preview_frame, text="Modificar", 
+                                                    command=lambda fn=file_name, cat=category: self._open_modify_dialog(fn, cat),
+                                                    width=90, height=25, font=self.small_font,
+                                                    fg_color="gray", hover_color="darkgray")
+                        modify_button.grid(row=row_idx, column=1, padx=5, pady=1, sticky="e")
                     row_idx += 1
             else:
                 ctk.CTkLabel(self.preview_frame, text="    (Nenhum arquivo para esta categoria)", 
-                            font=self.small_italic_font, text_color="gray").grid(row=row_idx, column=0, padx=15, pady=1, sticky="w")
+                            font=self.small_italic_font, text_color="gray").grid(row=row_idx, column=0, columnspan=2, padx=15, pady=1, sticky="w")
                 row_idx += 1
-        
+
         ctk.CTkLabel(self.preview_frame, text="\nDetalhes de Classificação por Arquivo:", 
-                    font=self.medium_font, text_color=self.text_color).grid(row=row_idx, column=0, padx=5, pady=10, sticky="w")
+                    font=self.medium_font, text_color=self.text_color).grid(row=row_idx, column=0, columnspan=2, padx=5, pady=10, sticky="w")
         row_idx += 1
 
         if self.files_info:
@@ -598,7 +627,7 @@ class OrganizationPreview(ctk.CTkToplevel):
                 detail_text = f"Arquivo: {file_name}\n  -> Categoria Sugerida: {category}"
                 if date_str != "Nenhuma":
                     detail_text += f"\n  -> Datas Encontradas: {date_str}"
-                
+
                 detail_color = self.text_color
                 if "(Não processável)" in category:
                     detail_color = "orange"
@@ -606,12 +635,27 @@ class OrganizationPreview(ctk.CTkToplevel):
 
 
                 ctk.CTkLabel(self.preview_frame, text=detail_text, justify="left", 
-                            font=self.small_font, text_color=detail_color).grid(row=row_idx, column=0, padx=15, pady=5, sticky="w")
+                            font=self.small_font, text_color=detail_color).grid(row=row_idx, column=0, columnspan=2, padx=15, pady=5, sticky="w")
                 row_idx += 1
         else:
             ctk.CTkLabel(self.preview_frame, text="Nenhum arquivo processável encontrado.", 
-                        font=self.small_italic_font, text_color="gray").grid(row=row_idx, column=0, padx=15, pady=5, sticky="w")
+                        font=self.small_italic_font, text_color="gray").grid(row=row_idx, column=0, columnspan=2, padx=15, pady=5, sticky="w")
 
+    def _open_modify_dialog(self, filename, current_category):
+        modify_window = ModifyCategory(self, filename, current_category, self.available_categories)
+        modify_window.grab_set()
+        self.wait_window(modify_window)
+
+        if hasattr(modify_window, 'new_category') and modify_window.new_category:
+            new_cat = modify_window.new_category
+            original_file_name = modify_window.original_filename
+
+            for i, (fn, cat, dates) in enumerate(self.files_info):
+                if fn == original_file_name:
+                    self.files_info[i] = (fn, new_cat, dates)
+                    self.master.log_message(f"Categoria de '{fn}' alterada manualmente para '{new_cat}'.")
+                    break
+            self._display_preview_content()
 
     def _confirm_organization(self):
         self.confirmed = True
@@ -621,7 +665,70 @@ class OrganizationPreview(ctk.CTkToplevel):
         self.confirmed = False
         self.destroy()
 
-# --- Inicializador do Aplicativo ---
+
+class ModifyCategory(ctk.CTkToplevel):
+    def __init__(self, master, filename, current_category, all_categories):
+        super().__init__(master)
+        self.title(f"Modificar Categoria: {filename}")
+        self.geometry("450x250")
+        self.resizable(False, False)
+
+        self.master = master
+        self.original_filename = filename
+        self.new_category = None
+        self.available_categories = sorted(all_categories)
+
+        self.big_font = master.big_font
+        self.medium_font = master.medium_font
+        self.small_font = master.small_font
+        self.text_color = master.text_color
+        self.bg_color = master.bg_color
+        self.frame_color = master.frame_color
+
+        self.configure(fg_color=self.bg_color)
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_rowconfigure((0,1,2,3), weight=0)
+
+        ctk.CTkLabel(self, text=f"Arquivo: {filename}", font=self.medium_font, text_color=self.text_color, wraplength=400).grid(row=0, column=0, padx=20, pady=10, sticky="w")
+        ctk.CTkLabel(self, text=f"Categoria Atual: {current_category}", font=self.medium_font, text_color=self.text_color).grid(row=1, column=0, padx=20, pady=5, sticky="w")
+
+        ctk.CTkLabel(self, text="Nova Categoria:", font=self.medium_font, text_color=self.text_color).grid(row=2, column=0, padx=20, pady=5, sticky="w")
+
+        self.category_optionmenu = ctk.CTkOptionMenu(self, values=self.available_categories, 
+                                                    command=self._option_menu_callback,
+                                                    font=self.medium_font)
+        self.category_optionmenu.set(current_category)
+        self.category_optionmenu.grid(row=3, column=0, padx=20, pady=10, sticky="ew")
+
+        self.action_buttons_frame = ctk.CTkFrame(self, fg_color="transparent")
+        self.action_buttons_frame.grid(row=4, column=0, padx=20, pady=10, sticky="ew")
+        self.action_buttons_frame.grid_columnconfigure((0,1), weight=1)
+
+        self.confirm_button = ctk.CTkButton(self.action_buttons_frame, text="Confirmar", 
+                                            command=self._confirm_selection, font=self.medium_font,
+                                            fg_color=master.secondary_color, hover_color="#27ae60")
+        self.confirm_button.grid(row=0, column=0, padx=5, pady=10, sticky="ew")
+
+        self.cancel_button = ctk.CTkButton(self.action_buttons_frame, text="Cancelar", 
+                                        command=self.destroy, font=self.medium_font,
+                                        fg_color=master.cancel_color, hover_color="darkred")
+        self.cancel_button.grid(row=0, column=1, padx=5, pady=10, sticky="ew")
+
+    def _option_menu_callback(self, choice):
+        self.new_category = choice
+
+    def _confirm_selection(self):
+        if self.new_category is None:
+            self.new_category = self.category_optionmenu.get()
+        
+        if "(Não processável)" in self.new_category:
+            CTkMessagebox.CTkMessagebox(title="Erro", message="Não é possível definir um arquivo como 'Não processável' manualmente.", icon="warning")
+            self.new_category = None
+            return
+
+        self.destroy()
+
+
 if __name__ == "__main__":
     ctk.set_appearance_mode("System")
     ctk.set_default_color_theme("blue")

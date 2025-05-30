@@ -6,6 +6,12 @@ __pycache__/
 # C extensions
 *.so
 
+# Folder to ignore
+modelos/
+modelos-updated/
+poppler-24.08.0/
+tesseract/
+
 # Distribution / packaging
 .Python
 build/
