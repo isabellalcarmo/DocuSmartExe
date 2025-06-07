@@ -5,7 +5,8 @@ import CTkMessagebox
 import organizer 
 import threading
 import sys
-import config 
+import config
+import webbrowser
 
 
 class App(ctk.CTk):
@@ -334,14 +335,18 @@ class LoginWindow(ctk.CTkToplevel):
 
         self.master = master; self.title("Acesso DocuSmart")
 
-        window_width, window_height = 450, 520
+        window_width, window_height = 450, 560
         center_x = int((self.winfo_screenwidth()/2)-(window_width/2))
         center_y = int((self.winfo_screenheight()/2)-(window_height/2))
 
         self.geometry(f"{window_width}x{window_height}+{center_x}+{center_y}")  
 
-        self.resizable(False, False); self.protocol("WM_DELETE_WINDOW", self._on_close_login_window)
-        big_font_login=ctk.CTkFont(family="Arial",size=22,weight="bold"); medium_font_login=ctk.CTkFont(family="Arial",size=16); small_font_login_italic=ctk.CTkFont(family="Arial",size=12,slant="italic")
+        self.resizable(False, False)
+        self.protocol("WM_DELETE_WINDOW", self._on_close_login_window)
+
+        big_font_login = ctk.CTkFont(family="Arial", size=22, weight="bold")
+        medium_font_login = ctk.CTkFont(family="Arial", size=16)
+        small_font_login_italic = ctk.CTkFont(family="Arial", size=12, slant="italic")
         
         ctk.CTkLabel(self,text="Bem-vindo ao DocuSmart!",font=big_font_login,text_color=self.master.primary_color).pack(pady=(25,15))
         ctk.CTkLabel(self,text=("Novo por aqui? Digite seu email e uma senha forte,\n"
@@ -356,11 +361,27 @@ class LoginWindow(ctk.CTkToplevel):
 
         self.login_button = ctk.CTkButton(button_frame,text="Login",command=self._attempt_login,font=medium_font_login,fg_color=self.master.primary_color,hover_color="#2980b9"); self.login_button.grid(row=0,column=0,padx=5,sticky="ew")
         self.signup_button = ctk.CTkButton(button_frame,text="Criar Conta",command=self._attempt_signup,font=medium_font_login,fg_color=self.master.signup_color,hover_color="#e67e22"); self.signup_button.grid(row=0,column=1,padx=5,sticky="ew")
-        self.status_label = ctk.CTkLabel(self,text="",wraplength=380,font=self.master.small_font); self.status_label.pack(pady=(15,10))
+
+        self.forgot_password_button = ctk.CTkButton(self,
+                                                    text="Esqueceu sua senha?",
+                                                    command=self._open_password_reset_link,
+                                                    font=self.master.small_font,
+                                                    text_color=self.master.primary_color,
+                                                    fg_color="transparent",
+                                                    compound="left",
+                                                    anchor="center")
+        self.forgot_password_button.pack(pady=(15, 10))
+
+        self.status_label = ctk.CTkLabel(self,text="",wraplength=380,font=self.master.small_font)
+        self.status_label.pack(pady=(15,10))
 
     def _on_close_login_window(self):
-        if not self.master.user_session: self.master.log_message("Login não concluído. Encerrando."); self.master.destroy() 
-        self.destroy()
+        if self.master.winfo_exists() and not self.master.user_session:
+            self.master.log_message("Login não concluído. Encerrando.")
+            self.master.destroy()
+        else:
+            if self.winfo_exists():
+                self.destroy()
 
     def _attempt_login(self):
         email = self.email_entry.get().strip(); password = self.password_entry.get().strip()
@@ -402,6 +423,19 @@ class LoginWindow(ctk.CTkToplevel):
             if "user already registered" in error_msg.lower():error_msg = "Email já registrado."
             elif "rate limit exceeded" in error_msg.lower():error_msg = "Muitas tentativas."
             self.status_label.configure(text=f"Erro criar conta: {error_msg}"); print(f"Signup error: {e}")
+
+    def _open_password_reset_link(self):
+        reset_link = "https://preview--smartdoc-organizer-ai.lovable.app/password-reset"
+        try:
+            webbrowser.open_new_tab(reset_link)
+            self.master.log_message(f"Abrindo link de redefinição de senha: {reset_link}")
+        except Exception as e:
+            self.status_label.configure(text=f"Erro ao abrir link: {e}")
+            self.master.log_message(f"Erro ao abrir link de redefinição de senha: {e}")
+            CTkMessagebox.CTkMessagebox(master=self,
+                                        title="Erro",
+                                        message=f"Não foi possível abrir o link de redefinição de senha.\nPor favor, acesse manualmente: {reset_link}",
+                                        icon="cancel")
 
 
 class CategoryManager(ctk.CTkToplevel):
