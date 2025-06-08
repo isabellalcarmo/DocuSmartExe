@@ -7,7 +7,7 @@ import threading
 import sys
 import config
 import webbrowser
-
+import re 
 
 class App(ctk.CTk):
     def __init__(self):
@@ -333,47 +333,108 @@ class LoginWindow(ctk.CTkToplevel):
     def __init__(self, master):
         super().__init__(master)
 
-        self.master = master; self.title("Acesso DocuSmart")
+        self.master = master
+        self.title("Acesso DocuSmart")
 
         window_width, window_height = 450, 560
-        center_x = int((self.winfo_screenwidth()/2)-(window_width/2))
-        center_y = int((self.winfo_screenheight()/2)-(window_height/2))
+        center_x = int((self.winfo_screenwidth() / 2) - (window_width / 2))
+        center_y = int((self.winfo_screenheight() / 2) - (window_height / 2))
 
-        self.geometry(f"{window_width}x{window_height}+{center_x}+{center_y}")  
-
+        self.geometry(f"{window_width}x{window_height}+{center_x}+{center_y}")
         self.resizable(False, False)
         self.protocol("WM_DELETE_WINDOW", self._on_close_login_window)
 
-        big_font_login = ctk.CTkFont(family="Arial", size=22, weight="bold")
-        medium_font_login = ctk.CTkFont(family="Arial", size=16)
-        small_font_login_italic = ctk.CTkFont(family="Arial", size=12, slant="italic")
+        self.big_font_login = ctk.CTkFont(family="Arial", size=22, weight="bold")
+        self.medium_font_login = ctk.CTkFont(family="Arial", size=16)
+        self.small_italic_font = ctk.CTkFont(family="Arial", size=13, slant="italic")
+
+        self.email_entry = None
+        self.password_entry = None
+        self.full_name_entry = None
+        self.status_label = None
+
+        self.form_frame = ctk.CTkFrame(self, fg_color="transparent")
+        self.form_frame.pack(pady=20, padx=50, fill="both", expand=True)
+
+        self._create_initial_view()
+
+    def _clear_frame(self):
+        for widget in self.form_frame.winfo_children():
+            widget.destroy()
+
+    def _create_initial_view(self):
+        self._clear_frame()
+        self.title("Acesso DocuSmart")
+
+        ctk.CTkLabel(self.form_frame, text="Bem-vindo ao DocuSmart!", font=self.big_font_login, text_color=self.master.primary_color).pack(pady=(25, 10))
         
-        ctk.CTkLabel(self,text="Bem-vindo ao DocuSmart!",font=big_font_login,text_color=self.master.primary_color).pack(pady=(25,15))
-        ctk.CTkLabel(self,text=("Novo por aqui? Digite seu email e uma senha forte,\n"
-                            "depois clique em 'Criar Conta'.\n\n"
-                            "Já tem cadastro? Insira seus dados e clique em 'Login'."),font=small_font_login_italic,justify="center",wraplength=380).pack(pady=10)
+        ctk.CTkLabel(self.form_frame, 
+                    text="Organização inteligente ao seu alcance.",
+                    font=self.small_italic_font,
+                    wraplength=380,
+                    justify="center").pack(pady=(0, 30))
 
-        ctk.CTkLabel(self,text="Email:",font=medium_font_login).pack(pady=(10,2)); self.email_entry = ctk.CTkEntry(self,width=300,font=medium_font_login); self.email_entry.pack(pady=(0,10))
-        ctk.CTkLabel(self,text="Senha:",font=medium_font_login).pack(pady=(5,2)); self.password_entry = ctk.CTkEntry(self,show="*",width=300,font=medium_font_login); self.password_entry.pack(pady=(0,20))
+        login_btn = ctk.CTkButton(self.form_frame, text="Fazer Login", command=self._create_login_view, font=self.medium_font_login, fg_color=self.master.primary_color, hover_color="#2980b9")
+        login_btn.pack(pady=10, fill="x", ipady=4)
 
-        button_frame = ctk.CTkFrame(self,fg_color="transparent"); button_frame.pack(pady=10,fill="x",padx=50)
-        button_frame.grid_columnconfigure(0,weight=1); button_frame.grid_columnconfigure(1,weight=1)
+        signup_btn = ctk.CTkButton(self.form_frame, text="Criar Conta", command=self._create_signup_view, font=self.medium_font_login, fg_color=self.master.signup_color, hover_color="#e67e22")
+        signup_btn.pack(pady=10, fill="x", ipady=4)
 
-        self.login_button = ctk.CTkButton(button_frame,text="Login",command=self._attempt_login,font=medium_font_login,fg_color=self.master.primary_color,hover_color="#2980b9"); self.login_button.grid(row=0,column=0,padx=5,sticky="ew")
-        self.signup_button = ctk.CTkButton(button_frame,text="Criar Conta",command=self._attempt_signup,font=medium_font_login,fg_color=self.master.signup_color,hover_color="#e67e22"); self.signup_button.grid(row=0,column=1,padx=5,sticky="ew")
+        self.status_label = ctk.CTkLabel(self.form_frame, text="", wraplength=380, font=self.master.small_font)
+        self.status_label.pack(pady=(20, 10))
 
-        self.forgot_password_button = ctk.CTkButton(self,
-                                                    text="Esqueceu sua senha?",
-                                                    command=self._open_password_reset_link,
-                                                    font=self.master.small_font,
-                                                    text_color=self.master.primary_color,
-                                                    fg_color="transparent",
-                                                    compound="left",
-                                                    anchor="center")
-        self.forgot_password_button.pack(pady=(15, 10))
+    def _create_login_view(self):
+        self._clear_frame()
+        self.title("Login")
 
-        self.status_label = ctk.CTkLabel(self,text="",wraplength=380,font=self.master.small_font)
-        self.status_label.pack(pady=(15,10))
+        ctk.CTkLabel(self.form_frame, text="Email:", font=self.medium_font_login).pack(anchor="w", pady=(10, 2))
+        self.email_entry = ctk.CTkEntry(self.form_frame, width=300, font=self.medium_font_login)
+        self.email_entry.pack(fill="x", pady=(0, 10))
+
+        ctk.CTkLabel(self.form_frame, text="Senha:", font=self.medium_font_login).pack(anchor="w", pady=(5, 2))
+        self.password_entry = ctk.CTkEntry(self.form_frame, show="*", width=300, font=self.medium_font_login)
+        self.password_entry.pack(fill="x", pady=(0, 20))
+
+        enter_button = ctk.CTkButton(self.form_frame, text="Entrar", command=self._attempt_login, font=self.medium_font_login, fg_color=self.master.primary_color, hover_color="#2980b9")
+        enter_button.pack(fill="x", pady=(5, 10), ipady=4)
+
+        forgot_password_button = ctk.CTkButton(self.form_frame, text="Esqueceu sua senha?", command=self._open_password_reset_link, font=self.master.small_font, text_color=self.master.primary_color, fg_color="transparent")
+        forgot_password_button.pack(pady=(0, 10))
+
+        back_button = ctk.CTkButton(self.form_frame, text="Voltar", command=lambda: self.after(0, self._create_initial_view), font=self.medium_font_login, fg_color="gray60", hover_color="gray50")
+        back_button.pack(fill="x", pady=(10, 0))
+
+        self.status_label = ctk.CTkLabel(self.form_frame, text="", wraplength=380, font=self.master.small_font)
+        self.status_label.pack(pady=(15, 10))
+
+    def _create_signup_view(self):
+        self._clear_frame()
+        self.title("Criar Nova Conta")
+
+        ctk.CTkLabel(self.form_frame, text="Nome Completo:", font=self.medium_font_login).pack(anchor="w", pady=(10, 2))
+        self.full_name_entry = ctk.CTkEntry(self.form_frame, width=300, font=self.medium_font_login)
+        self.full_name_entry.pack(fill="x", pady=(0, 10))
+
+        ctk.CTkLabel(self.form_frame, text="Email:", font=self.medium_font_login).pack(anchor="w", pady=(5, 2))
+        self.email_entry = ctk.CTkEntry(self.form_frame, width=300, font=self.medium_font_login)
+        self.email_entry.pack(fill="x", pady=(0, 10))
+
+        ctk.CTkLabel(self.form_frame, text="Senha (mín. 6 caracteres):", font=self.medium_font_login).pack(anchor="w", pady=(5, 2))
+        self.password_entry = ctk.CTkEntry(self.form_frame, show="*", width=300, font=self.medium_font_login)
+        self.password_entry.pack(fill="x", pady=(0, 20))
+
+        register_button = ctk.CTkButton(self.form_frame, text="Cadastrar", command=self._attempt_signup, font=self.medium_font_login, fg_color=self.master.signup_color, hover_color="#e67e22")
+        register_button.pack(fill="x", pady=(5, 10), ipady=4)
+
+        back_button = ctk.CTkButton(self.form_frame, text="Voltar", command=lambda: self.after(0, self._create_initial_view), font=self.medium_font_login, fg_color="gray60", hover_color="gray50")
+        back_button.pack(fill="x", pady=(10, 0))
+
+        self.status_label = ctk.CTkLabel(self.form_frame, text="", wraplength=380, font=self.master.small_font)
+        self.status_label.pack(pady=(15, 10))
+
+    def _is_valid_email(self, email):
+        regex = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        return re.match(regex, email) is not None
 
     def _on_close_login_window(self):
         if self.master.winfo_exists() and not self.master.user_session:
@@ -384,45 +445,120 @@ class LoginWindow(ctk.CTkToplevel):
                 self.destroy()
 
     def _attempt_login(self):
-        email = self.email_entry.get().strip(); password = self.password_entry.get().strip()
-        if not email or not password: self.status_label.configure(text="Email e senha são obrigatórios."); return
-        if not config.check_internet_connection(): self.status_label.configure(text="Erro: Sem conexão."); CTkMessagebox.CTkMessagebox(master=self, title="Erro de Conexão", message="Verifique sua conexão.", icon="cancel"); return
-        if not config.supabase: self.status_label.configure(text="Erro: Falha no serviço."); CTkMessagebox.CTkMessagebox(master=self, title="Erro de Serviço", message="Não foi possível conectar.", icon="cancel"); return
+        email = self.email_entry.get().strip()
+        password = self.password_entry.get().strip()
+        
+        if not email or not password:
+            self.status_label.configure(text="Email e senha são obrigatórios.")
+            return
+        if not self._is_valid_email(email):
+            self.status_label.configure(text="Por favor, insira um endereço de e-mail válido.")
+            return
+        if not config.check_internet_connection():
+            self.status_label.configure(text="Erro: Sem conexão com a internet.")
+            CTkMessagebox.CTkMessagebox(master=self, title="Erro de Conexão", message="Verifique sua conexão com a internet.", icon="cancel")
+            return
+        if not config.supabase:
+            self.status_label.configure(text="Erro: Falha na conexão com o serviço.")
+            CTkMessagebox.CTkMessagebox(master=self, title="Erro de Serviço", message="Não foi possível conectar aos serviços online.", icon="cancel")
+            return
         try:
             self.status_label.configure(text="Efetuando login..."); self.update_idletasks()
             session_response = config.supabase.auth.sign_in_with_password({"email": email, "password": password})
-            self.master.user_session = session_response.session; self.master.current_user = session_response.user
+            self.master.user_session = session_response.session
+            self.master.current_user = session_response.user
             profile_response = config.supabase.table("profiles").select("credits_remaining,credits_total,is_approved").eq("id",self.master.current_user.id).limit(1).single().execute()
             if profile_response.data:
-                is_approved = profile_response.data.get("is_approved",False)
-                if not is_approved: self.status_label.configure(text="Conta aguardando aprovação."); self.master.log_message(f"Login {email}: Aguardando aprovação."); self.master.user_session=None; self.master.current_user=None; return
-                self.master.user_credits_remaining=profile_response.data.get("credits_remaining",0); self.master.user_credits_total=profile_response.data.get("credits_total",0)
-                self.status_label.configure(text="Login bem-sucedido!"); self.update_idletasks()
-                self.master.show_main_application_ui(); self.destroy()
-            else: self.status_label.configure(text="Perfil não encontrado."); self.master.log_message(f"Login {email}, perfil não encontrado."); self.master.user_session=None; self.master.current_user=None; return
+                is_approved = profile_response.data.get("is_approved", False)
+                if not is_approved:
+                    self.status_label.configure(text="Sua conta ainda está aguardando aprovação.")
+                    self.master.log_message(f"Tentativa de login de {email}: Conta aguardando aprovação.")
+                    self.master.user_session = None
+                    self.master.current_user = None
+                    return
+                self.master.user_credits_remaining = profile_response.data.get("credits_remaining", 0)
+                self.master.user_credits_total = profile_response.data.get("credits_total", 0)
+                self.status_label.configure(text="Login bem-sucedido!")
+                self.update_idletasks()
+                self.master.show_main_application_ui()
+                self.destroy()
+            else:
+                self.status_label.configure(text="Perfil de usuário não encontrado.")
+                self.master.log_message(f"Tentativa de login de {email}, mas o perfil não foi encontrado no banco de dados.")
+                self.master.user_session = None
+                self.master.current_user = None
+                return
         except Exception as e:
-            error_msg = str(e).splitlines()[0] if str(e).splitlines() else "Erro"
-            if "invalid login credentials" in error_msg.lower(): error_msg = "Email/senha inválidos."
-            elif "email not confirmed" in error_msg.lower(): error_msg = "Email não confirmado."
-            self.status_label.configure(text=f"Erro login: {error_msg}"); print(f"Login error: {e}"); self.master.user_session=None; self.master.current_user=None
+            error_msg = str(e).splitlines()[0] if str(e).splitlines() else "Erro desconhecido"
+            if "invalid login credentials" in error_msg.lower():
+                error_msg = "Email ou senha inválidos."
+            elif "email not confirmed" in error_msg.lower():
+                error_msg = "Email ainda não confirmado. Verifique sua caixa de entrada."
+            self.status_label.configure(text=f"Erro de login: {error_msg}")
+            print(f"Login error: {e}")
+            self.master.user_session = None
+            self.master.current_user = None
 
     def _attempt_signup(self):
-        email = self.email_entry.get().strip(); password = self.password_entry.get().strip()
-        if not email or not password: self.status_label.configure(text="Email e Senha são obrigatórios."); return
-        if len(password) < 6: self.status_label.configure(text="Senha > 6 caracteres."); return
-        if not config.check_internet_connection(): self.status_label.configure(text="Erro: Sem conexão."); CTkMessagebox.CTkMessagebox(master=self,title="Erro Conexão",message="Verifique sua conexão.",icon="cancel"); return
-        if not config.supabase: self.status_label.configure(text="Erro: Falha serviço."); CTkMessagebox.CTkMessagebox(master=self,title="Erro Serviço",message="Não foi possível conectar.",icon="cancel"); return
+        full_name = self.full_name_entry.get().strip()
+        email = self.email_entry.get().strip()
+        password = self.password_entry.get().strip()
+
+        if not full_name or not email or not password:
+            self.status_label.configure(text="Nome, email e senha são obrigatórios.")
+            return
+        if not self._is_valid_email(email):
+            self.status_label.configure(text="Por favor, insira um endereço de e-mail válido.")
+            return
+        if len(password) < 6:
+            self.status_label.configure(text="A senha deve ter pelo menos 6 caracteres.")
+            return
+        if not config.check_internet_connection():
+            self.status_label.configure(text="Erro: Sem conexão com a internet.")
+            CTkMessagebox.CTkMessagebox(master=self, title="Erro de Conexão", message="Verifique sua conexão com a internet.", icon="cancel")
+            return
+        if not config.supabase:
+            self.status_label.configure(text="Erro: Falha na conexão com o serviço.")
+            CTkMessagebox.CTkMessagebox(master=self, title="Erro de Serviço", message="Não foi possível conectar aos serviços online.", icon="cancel")
+            return
+
         try:
-            self.status_label.configure(text="Criando conta..."); self.update_idletasks()
-            config.supabase.auth.sign_up({"email":email,"password":password})
-            self.status_label.configure(text="Conta criada! Verifique email e aguarde aprovação.")
-            CTkMessagebox.CTkMessagebox(master=self,title="Conta Criada",message="Conta criada!\n\n1. Verifique seu e-mail.\n2. Aguarde aprovação.",icon="check")
-            self.master.log_message(f"Nova conta {email}. Aguardando aprovação.")
+            self.status_label.configure(text="Criando sua conta..."); self.update_idletasks()
+            
+            auth_response = config.supabase.auth.sign_up({
+                "email": email, 
+                "password": password,
+                "options": {
+                    "data": {
+                        "full_name": full_name
+                    }
+                }
+            })
+
+            if auth_response.user:
+                self.status_label.configure(text="Conta criada! Verifique seu email para confirmar.")
+                CTkMessagebox.CTkMessagebox(master=self, title="Conta Criada com Sucesso!", 
+                                            message="Sua conta foi criada!\n\nEnviamos um link de confirmação para o seu e-mail. Por favor, clique no link para ativar sua conta e poder fazer o login.",
+                                            icon="check")
+                self.master.log_message(f"Nova conta registrada para {email}. Perfil será criado via gatilho.")
+
+                self.after(50, self._create_initial_view)
+            else:
+                self.status_label.configure(text="Não foi possível registrar o usuário. Tente novamente.")
+
         except Exception as e:
-            error_msg = str(e).splitlines()[0] if str(e).splitlines() else "Erro"
-            if "user already registered" in error_msg.lower():error_msg = "Email já registrado."
-            elif "rate limit exceeded" in error_msg.lower():error_msg = "Muitas tentativas."
-            self.status_label.configure(text=f"Erro criar conta: {error_msg}"); print(f"Signup error: {e}")
+            error_msg = str(e)
+            if 'User already registered' in error_msg:
+                error_msg = "Este email já está cadastrado."
+            elif 'rate limit exceeded' in error_msg.lower():
+                error_msg = "Muitas tentativas. Tente novamente mais tarde."
+            elif 'weak password' in error_msg.lower():
+                error_msg = "Senha muito fraca. Tente uma mais forte."
+            else:
+                error_msg = "Ocorreu um erro desconhecido."
+
+            self.status_label.configure(text=f"Erro ao criar conta: {error_msg}")
+            print(f"Signup error: {e}")
 
     def _open_password_reset_link(self):
         reset_link = "https://preview--smartdoc-organizer-ai.lovable.app/password-reset"
@@ -468,12 +604,23 @@ class CategoryManager(ctk.CTkToplevel):
         self.disabled_entry_bg_color = master.disabled_entry_bg_color
         self.configure(fg_color=self.bg_color)
 
-        self.grid_columnconfigure(0, weight=1); self.grid_rowconfigure(0, weight=0); self.grid_rowconfigure(1, weight=1); self.grid_rowconfigure(2, weight=0); self.grid_rowconfigure(3, weight=0)
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_rowconfigure(0, weight=0)
+        self.grid_rowconfigure(1, weight=1)
+        self.grid_rowconfigure(2, weight=0)
+        self.grid_rowconfigure(3, weight=0)
+
         ctk.CTkLabel(self, text="Defina ou Edite Suas Categorias de Documentos", font=self.big_font, text_color=self.text_color).grid(row=0, column=0, padx=20, pady=(20,10))
         self.category_list_frame = ctk.CTkScrollableFrame(self, label_text="Categorias Atuais e Descrições", height=350, fg_color=self.frame_color, corner_radius=10, label_font=self.medium_font) 
         self.category_list_frame.grid(row=1, column=0, padx=20, pady=10, sticky="nsew")
-        self.category_list_frame.grid_columnconfigure(0, weight=1); self.category_list_frame.grid_columnconfigure(1, weight=3); self.category_list_frame.grid_columnconfigure(2, weight=0)
-        self.category_widgets = {}; self.load_categories_to_display()
+
+        self.category_list_frame.grid_columnconfigure(0, weight=1)
+        self.category_list_frame.grid_columnconfigure(1, weight=3)
+        self.category_list_frame.grid_columnconfigure(2, weight=0)
+
+        self.category_widgets = {}
+        self.load_categories_to_display()
+
         self.add_category_frame = ctk.CTkFrame(self, fg_color=self.frame_color, corner_radius=10)
         self.add_category_frame.grid(row=2, column=0, padx=20, pady=10, sticky="ew")
         self.add_category_frame.grid_columnconfigure(1, weight=1) 
@@ -528,8 +675,10 @@ class CategoryManager(ctk.CTkToplevel):
         if name in self.current_categories: CTkMessagebox.CTkMessagebox(master=self, title="Aviso", message=f"A categoria '{name}' já existe.", icon="warning"); return
         if not description: CTkMessagebox.CTkMessagebox(master=self, title="Aviso", message="A descrição da categoria não pode estar vazia.", icon="warning"); return
         self.current_categories[name] = description
-        self.new_category_name_entry.delete(0, "end"); self.new_category_description_entry.delete("0.0", "end")
-        self.master.log_message(f"Categoria '{name}' adicionada."); self.load_categories_to_display()
+        self.new_category_name_entry.delete(0, "end")
+        self.new_category_description_entry.delete("0.0", "end")
+        self.master.log_message(f"Categoria '{name}' adicionada.")
+        self.load_categories_to_display()
 
     def remove_category(self, category_name):
         if category_name.lower() in ["outros", "imagens"]:
@@ -537,13 +686,15 @@ class CategoryManager(ctk.CTkToplevel):
         response = CTkMessagebox.CTkMessagebox(master=self,title="Confirmar Exclusão",message=f"Tem certeza que deseja remover a categoria '{category_name}'?",icon="question",option_1="Não",option_2="Sim").get()
         if response == "Sim" and category_name in self.current_categories:
             del self.current_categories[category_name]
-            self.master.log_message(f"Categoria '{category_name}' removida."); self.load_categories_to_display()
+            self.master.log_message(f"Categoria '{category_name}' removida.")
+            self.load_categories_to_display()
 
     def reset_categories(self):
         response = CTkMessagebox.CTkMessagebox(master=self,title="Confirmar Redefinição",message="Redefinir para categorias padrão?\nCategorias personalizadas serão perdidas.",icon="warning",option_1="Não",option_2="Sim").get()
         if response == "Sim":
             self.current_categories = self.master.default_categories.copy()
-            self.master.log_message("Categorias redefinidas para o padrão."); self.load_categories_to_display()
+            self.master.log_message("Categorias redefinidas para o padrão.")
+            self.load_categories_to_display()
 
     def save_and_close(self):
         temp_categories = {}
@@ -559,10 +710,12 @@ class CategoryManager(ctk.CTkToplevel):
             default_desc = self.master.default_categories.get(essential_cat, "")
             if temp_categories.get(essential_cat, "").strip() == "": temp_categories[essential_cat] = default_desc
         self.result_categories = temp_categories
-        self.master.handle_category_manager_close(self.result_categories); self.destroy()
+        self.master.handle_category_manager_close(self.result_categories)
+        self.destroy()
     
     def _cancel_and_close(self):
-        self.master.handle_category_manager_close(None); self.destroy()
+        self.master.handle_category_manager_close(None)
+        self.destroy()
 
 
 class OrganizationPreview(ctk.CTkToplevel):
@@ -596,7 +749,11 @@ class OrganizationPreview(ctk.CTkToplevel):
 
         self.small_italic_font = ctk.CTkFont(family="Arial", size=12, slant="italic")
         self.configure(fg_color=self.bg_color)
-        self.grid_columnconfigure(0, weight=1); self.grid_rowconfigure(0, weight=0); self.grid_rowconfigure(1, weight=1); self.grid_rowconfigure(2, weight=0)
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_rowconfigure(0, weight=0)
+        self.grid_rowconfigure(1, weight=1)
+        self.grid_rowconfigure(2, weight=0)
+
         ctk.CTkLabel(self, text="Verifique a prévia da organização antes de confirmar:", font=self.big_font, text_color=self.text_color).grid(row=0, column=0, padx=20, pady=10, sticky="w")
         self.preview_frame = ctk.CTkScrollableFrame(self, fg_color=self.frame_color, corner_radius=10)
         self.preview_frame.grid(row=1, column=0, padx=20, pady=10, sticky="nsew")
@@ -678,10 +835,14 @@ class OrganizationPreview(ctk.CTkToplevel):
             self._display_preview_content()
 
     def _confirm_organization(self):
-        self.confirmed = True; self.master.handle_preview_confirmation(self.confirmed, self.files_info); self.destroy()
+        self.confirmed = True
+        self.master.handle_preview_confirmation(self.confirmed, self.files_info)
+        self.destroy()
 
     def _cancel_organization(self):
-        self.confirmed = False; self.master.handle_preview_confirmation(self.confirmed, self.files_info); self.destroy()
+        self.confirmed = False
+        self.master.handle_preview_confirmation(self.confirmed, self.files_info)
+        self.destroy()
 
 
 class ModifyCategory(ctk.CTkToplevel):
@@ -693,7 +854,8 @@ class ModifyCategory(ctk.CTkToplevel):
         center_x = int((self.winfo_screenwidth() / 2) - (window_width / 2))
         center_y = int((self.winfo_screenheight() / 2) - (window_height / 2))
 
-        self.geometry(f"{window_width}x{window_height}+{center_x}+{center_y}"); self.resizable(False, False)
+        self.geometry(f"{window_width}x{window_height}+{center_x}+{center_y}")
+        self.resizable(False, False)
 
         self.master_preview = master_preview
         self.original_filename = filename
@@ -721,9 +883,12 @@ class ModifyCategory(ctk.CTkToplevel):
         if current_category in self.available_categories: 
             self.category_optionmenu.set(current_category)
         elif self.available_categories: 
-            self.category_optionmenu.set(self.available_categories[0]); self.new_category_selected = self.available_categories[0]
+            self.category_optionmenu.set(self.available_categories[0])
+            self.new_category_selected = self.available_categories[0]
         else: 
-            self.category_optionmenu.set("Nenhuma"); self.category_optionmenu.configure(state="disabled"); self.new_category_selected = None
+            self.category_optionmenu.set("Nenhuma")
+            self.category_optionmenu.configure(state="disabled")
+            self.new_category_selected = None
 
         self.category_optionmenu.pack(padx=20, pady=(0,20), fill="x")
 
@@ -738,11 +903,16 @@ class ModifyCategory(ctk.CTkToplevel):
 
         self.protocol("WM_DELETE_WINDOW", self._cancel_and_close)
 
-    def _option_menu_callback(self, choice): self.new_category_selected = choice
+    def _option_menu_callback(self, choice):
+        self.new_category_selected = choice
 
-    def _confirm_selection(self): self.master_preview.handle_modify_category_close(self.original_filename, self.new_category_selected); self.destroy()
+    def _confirm_selection(self):
+        self.master_preview.handle_modify_category_close(self.original_filename, self.new_category_selected)
+        self.destroy()
 
-    def _cancel_and_close(self): self.master_preview.handle_modify_category_close(self.original_filename, None); self.destroy()
+    def _cancel_and_close(self):
+        self.master_preview.handle_modify_category_close(self.original_filename, None)
+        self.destroy()
 
 
 if __name__ == "__main__":
