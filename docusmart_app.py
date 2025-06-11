@@ -7,7 +7,10 @@ import threading
 import sys
 import config
 import webbrowser
-import re 
+import re
+import threading
+import json
+
 
 class App(ctk.CTk):
     def __init__(self):
@@ -580,7 +583,7 @@ class CategoryManager(ctk.CTkToplevel):
 
         self.title("Gerenciar Categorias de Documentos")
 
-        window_width, window_height = 800, 700 
+        window_width, window_height = 800, 700
 
         center_x = int((self.winfo_screenwidth() / 2) - (window_width / 2))
         center_y = int((self.winfo_screenheight() / 2) - (window_height / 2))
@@ -592,15 +595,15 @@ class CategoryManager(ctk.CTkToplevel):
         self.current_categories = master.current_categories.copy()
         self.default_categories = master.default_categories 
         self.result_categories = None 
-        self.big_font=master.big_font
-        self.medium_font=master.medium_font
-        self.small_font=master.small_font
-        self.primary_color=master.primary_color
-        self.secondary_color=master.secondary_color
-        self.cancel_color=master.cancel_color
-        self.text_color=master.text_color
-        self.bg_color=master.bg_color
-        self.frame_color=master.frame_color
+        self.big_font = master.big_font
+        self.medium_font = master.medium_font
+        self.small_font = master.small_font
+        self.primary_color = master.primary_color
+        self.secondary_color = master.secondary_color
+        self.cancel_color = master.cancel_color
+        self.text_color = master.text_color
+        self.bg_color = master.bg_color
+        self.frame_color = master.frame_color
         self.disabled_entry_bg_color = master.disabled_entry_bg_color
         self.configure(fg_color=self.bg_color)
 
@@ -611,7 +614,9 @@ class CategoryManager(ctk.CTkToplevel):
         self.grid_rowconfigure(3, weight=0)
 
         ctk.CTkLabel(self, text="Defina ou Edite Suas Categorias de Documentos", font=self.big_font, text_color=self.text_color).grid(row=0, column=0, padx=20, pady=(20,10))
-        self.category_list_frame = ctk.CTkScrollableFrame(self, label_text="Categorias Atuais e Descrições", height=350, fg_color=self.frame_color, corner_radius=10, label_font=self.medium_font) 
+
+        self.category_list_frame = ctk.CTkScrollableFrame(self, label_text="Categorias Atuais e Descrições", height=350, fg_color=self.frame_color, corner_radius=10, label_font=self.medium_font)
+
         self.category_list_frame.grid(row=1, column=0, padx=20, pady=10, sticky="nsew")
 
         self.category_list_frame.grid_columnconfigure(0, weight=1)
@@ -624,35 +629,109 @@ class CategoryManager(ctk.CTkToplevel):
         self.add_category_frame = ctk.CTkFrame(self, fg_color=self.frame_color, corner_radius=10)
         self.add_category_frame.grid(row=2, column=0, padx=20, pady=10, sticky="ew")
         self.add_category_frame.grid_columnconfigure(1, weight=1) 
+
         ctk.CTkLabel(self.add_category_frame, text="✨ Adicionar Nova Categoria:", font=self.medium_font, text_color=self.text_color).grid(row=0, column=0, columnspan=2, padx=10, pady=(10,5), sticky="w")
+        
         ctk.CTkLabel(self.add_category_frame, text="Nome:", font=self.small_font, text_color=self.text_color).grid(row=1, column=0, padx=10, pady=5, sticky="w")
-        self.new_category_name_entry = ctk.CTkEntry(self.add_category_frame, placeholder_text="Ex: Contratos", font=self.small_font, fg_color=self.disabled_entry_bg_color, text_color=self.text_color) 
+
+        self.category_name_var = ctk.StringVar()
+        self.category_name_var.trace_add("write", self._on_category_name_change)
+
+        self.new_category_name_entry = ctk.CTkEntry(self.add_category_frame, placeholder_text="Ex: Pets", font=self.small_font, textvariable=self.category_name_var, fg_color=self.disabled_entry_bg_color, text_color=self.text_color)
         self.new_category_name_entry.grid(row=1, column=1, padx=10, pady=5, sticky="ew")
-        ctk.CTkLabel(self.add_category_frame, text="Descrição:", font=self.small_font, text_color=self.text_color).grid(row=2, column=0, padx=10, pady=5, sticky="w")
-        self.new_category_description_entry = ctk.CTkTextbox(self.add_category_frame, height=60, font=self.small_font, wrap="word", fg_color=self.disabled_entry_bg_color, text_color=self.text_color) 
-        self.new_category_description_entry.grid(row=2, column=1, padx=10, pady=5, sticky="ew")
+
+        description_frame = ctk.CTkFrame(self.add_category_frame, fg_color="transparent")
+        description_frame.grid(row=2, column=0, columnspan=2, padx=10, pady=5, sticky="nsew")
+        description_frame.grid_columnconfigure(1, weight=1)
+
+        desc_label_frame = ctk.CTkFrame(description_frame, fg_color="transparent")
+        desc_label_frame.grid(row=0, column=0, columnspan=3, sticky="ew")
+
+        ctk.CTkLabel(desc_label_frame, text="Descrição:", font=self.small_font, text_color=self.text_color).pack(side="left")
+
+        self.generate_desc_button = ctk.CTkButton(desc_label_frame, text="Sugerir Descrição com IA ✨", font=self.small_font, width=180, command=self._generate_description_ai_threaded)
+        self.generate_desc_button.pack(side="right")
+
+        ctk.CTkLabel(desc_label_frame, text="(Digite o nome primeiro)", font=ctk.CTkFont(family="Arial", size=11, slant="italic"), text_color="gray50").pack(side="right", padx=5)
+
+        self.new_category_description_entry = ctk.CTkTextbox(description_frame, height=60, font=self.small_font, wrap="word", fg_color=self.disabled_entry_bg_color, text_color=self.text_color) 
+        self.new_category_description_entry.grid(row=1, column=0, columnspan=3, pady=(5,0), sticky="ew")
+
         self.add_category_button = ctk.CTkButton(self.add_category_frame, text="➕ Adicionar Categoria", command=self.add_new_category, font=self.medium_font, fg_color=self.primary_color, hover_color="#2980b9")
-        self.add_category_button.grid(row=3, column=0, columnspan=2, padx=10, pady=(10,10), sticky="ew")
+        self.add_category_button.grid(row=3, column=0, columnspan=2, padx=10, pady=(15,10), sticky="ew")
+
         self.action_buttons_frame = ctk.CTkFrame(self, fg_color="transparent")
         self.action_buttons_frame.grid(row=3, column=0, padx=20, pady=(10,20), sticky="ew")
         self.action_buttons_frame.grid_columnconfigure((0,1,2), weight=1)
+
         self.reset_button = ctk.CTkButton(self.action_buttons_frame, text="🔄 Redefinir Padrão", command=self.reset_categories, font=self.medium_font, fg_color="gray60", hover_color="gray50")
         self.reset_button.grid(row=0, column=0, padx=5, pady=10, sticky="ew")
         self.save_button = ctk.CTkButton(self.action_buttons_frame, text="✅ Salvar e Fechar", command=self.save_and_close, font=self.medium_font, fg_color=self.secondary_color, hover_color="#27ae60")
         self.save_button.grid(row=0, column=1, padx=5, pady=10, sticky="ew")
         self.cancel_button = ctk.CTkButton(self.action_buttons_frame, text="❌ Cancelar", command=self._cancel_and_close, font=self.medium_font, fg_color=self.cancel_color, hover_color="#c0392b")
         self.cancel_button.grid(row=0, column=2, padx=5, pady=10, sticky="ew")
+
         self.protocol("WM_DELETE_WINDOW", self._cancel_and_close)
+
+    def _on_category_name_change(self, *args):
+        self.generate_desc_button.configure(state="normal")
+
+    def _generate_description_ai_threaded(self):
+        category_name = self.new_category_name_entry.get().strip()
+        if not category_name:
+            CTkMessagebox.CTkMessagebox(master=self, title="Aviso", message="Por favor, digite um nome para a categoria primeiro.", icon="warning")
+            return
+
+        self.generate_desc_button.configure(state="disabled", text="Gerando...")
+        self.new_category_description_entry.delete("0.0", "end")
+        self.new_category_description_entry.insert("0.0", "Aguarde, a IA está pensando...")
+
+        thread = threading.Thread(target=self._generate_description_ai, args=(category_name,))
+        thread.daemon = True
+        thread.start()
+
+    def _generate_description_ai(self, category_name):
+        is_success = False
+        try:
+            response_bytes = config.supabase.functions.invoke(
+                "generate-category-description",
+                invoke_options={'body': {'category_name': category_name}}
+            )
+            response_str = response_bytes.decode('utf-8')
+            response_data = json.loads(response_str)
+
+            description = ""
+            if isinstance(response_data, dict) and response_data.get('description') and not response_data.get('error'):
+                description = response_data['description']
+                is_success = True
+            else:
+                error_detail = response_data.get('error', 'Resposta inesperada.')
+                description = f"Erro: {error_detail}"
+        except Exception as e:
+            description = f"Erro de conexão: {e}"
+
+        self.after(0, self._update_description_from_ai, description, is_success)
+        
+    def _update_description_from_ai(self, description, is_success):
+        self.new_category_description_entry.delete("0.0", "end")
+        self.new_category_description_entry.insert("0.0", description)
+
+        if is_success:
+            self.generate_desc_button.configure(state="disabled", text="Descrição Sugerida!")
+        else:
+            self.generate_desc_button.configure(state="normal", text="Sugerir Descrição com IA ✨")
 
     def load_categories_to_display(self):
         for widget in self.category_list_frame.winfo_children(): widget.destroy()
         self.category_widgets = {}; row_idx = 0
+
         for category_name, description in self.current_categories.items():
             name_label = ctk.CTkLabel(self.category_list_frame, text=category_name, font=self.medium_font, text_color=self.text_color)
             name_label.grid(row=row_idx, column=0, padx=5, pady=5, sticky="w")
-            description_entry = ctk.CTkTextbox(self.category_list_frame, width=300, height=80, font=self.small_font, wrap="word", fg_color=self.frame_color, text_color=self.text_color)
+            description_entry = ctk.CTkTextbox(self.category_list_frame, width=300, height=80, font=self.small_font, wrap="word", fg_color=self.frame_color, text_color="#6e7986")
             description_entry.insert("0.0", description)
             description_entry.grid(row=row_idx, column=1, padx=5, pady=5, sticky="ew")
+
             is_default_category = category_name in self.default_categories
             if is_default_category:
                 description_entry.configure(state="disabled", fg_color=self.disabled_entry_bg_color) 
@@ -670,15 +749,26 @@ class CategoryManager(ctk.CTkToplevel):
 
     def add_new_category(self):
         name = self.new_category_name_entry.get().strip()
+        if not name: 
+            CTkMessagebox.CTkMessagebox(master=self, title="Aviso", message="O nome da categoria não pode estar vazio.", icon="warning")
+            return
+
+        normalized_name = name.capitalize()
         description = self.new_category_description_entry.get("0.0", "end-1c").strip()
-        if not name: CTkMessagebox.CTkMessagebox(master=self, title="Aviso", message="O nome da categoria não pode estar vazio.", icon="warning"); return
-        if name in self.current_categories: CTkMessagebox.CTkMessagebox(master=self, title="Aviso", message=f"A categoria '{name}' já existe.", icon="warning"); return
-        if not description: CTkMessagebox.CTkMessagebox(master=self, title="Aviso", message="A descrição da categoria não pode estar vazia.", icon="warning"); return
-        self.current_categories[name] = description
+
+        existing_categories_lower = [k.lower() for k in self.current_categories.keys()]
+        if normalized_name.lower() in existing_categories_lower:
+            CTkMessagebox.CTkMessagebox(master=self, title="Aviso", message=f"A categoria '{normalized_name}' já existe.", icon="warning")
+            return
+
+        if not description: 
+            CTkMessagebox.CTkMessagebox(master=self, title="Aviso", message="A descrição da categoria não pode estar vazia.", icon="warning")
+            return
+
+        self.current_categories[normalized_name] = description
         self.new_category_name_entry.delete(0, "end")
         self.new_category_description_entry.delete("0.0", "end")
-        self.master.log_message(f"Categoria '{name}' adicionada.")
-        self.load_categories_to_display()
+        self.master.log_message(f"Categoria '{normalized_name}' adicionada."); self.load_categories_to_display()
 
     def remove_category(self, category_name):
         if category_name.lower() in ["outros", "imagens"]:
@@ -686,36 +776,40 @@ class CategoryManager(ctk.CTkToplevel):
         response = CTkMessagebox.CTkMessagebox(master=self,title="Confirmar Exclusão",message=f"Tem certeza que deseja remover a categoria '{category_name}'?",icon="question",option_1="Não",option_2="Sim").get()
         if response == "Sim" and category_name in self.current_categories:
             del self.current_categories[category_name]
-            self.master.log_message(f"Categoria '{category_name}' removida.")
-            self.load_categories_to_display()
+            self.master.log_message(f"Categoria '{category_name}' removida."); self.load_categories_to_display()
 
     def reset_categories(self):
         response = CTkMessagebox.CTkMessagebox(master=self,title="Confirmar Redefinição",message="Redefinir para categorias padrão?\nCategorias personalizadas serão perdidas.",icon="warning",option_1="Não",option_2="Sim").get()
         if response == "Sim":
             self.current_categories = self.master.default_categories.copy()
-            self.master.log_message("Categorias redefinidas para o padrão.")
-            self.load_categories_to_display()
+            self.master.log_message("Categorias redefinidas para o padrão."); self.load_categories_to_display()
 
     def save_and_close(self):
         temp_categories = {}
         valid_save = True
         for cat_name, widgets in self.category_widgets.items():
-            if cat_name in self.default_categories: temp_categories[cat_name] = self.default_categories[cat_name]
+            normalized_cat_name = cat_name.capitalize()
+
+            if normalized_cat_name in self.default_categories: 
+                temp_categories[normalized_cat_name] = self.default_categories[normalized_cat_name]
             elif "description_entry" in widgets:
                 desc = widgets["description_entry"].get("0.0", "end-1c").strip()
-                if not desc: CTkMessagebox.CTkMessagebox(master=self, title="Descrição Vazia", message=f"A descrição da categoria personalizada '{cat_name}' não pode ser vazia.", icon="warning"); valid_save = False; break 
-                temp_categories[cat_name] = desc
+                if not desc: 
+                    CTkMessagebox.CTkMessagebox(master=self, title="Descrição Vazia", message=f"A descrição da categoria personalizada '{normalized_cat_name}' não pode ser vazia.", icon="warning")
+                    valid_save = False; break 
+                temp_categories[normalized_cat_name] = desc
+
         if not valid_save: return
+
         for essential_cat in ["Outros", "Imagens"]:
-            default_desc = self.master.default_categories.get(essential_cat, "")
-            if temp_categories.get(essential_cat, "").strip() == "": temp_categories[essential_cat] = default_desc
+            if essential_cat not in temp_categories:
+                temp_categories[essential_cat] = self.master.default_categories.get(essential_cat, "")
+
         self.result_categories = temp_categories
-        self.master.handle_category_manager_close(self.result_categories)
-        self.destroy()
-    
+        self.master.handle_category_manager_close(self.result_categories); self.destroy()
+
     def _cancel_and_close(self):
-        self.master.handle_category_manager_close(None)
-        self.destroy()
+        self.master.handle_category_manager_close(None); self.destroy()
 
 
 class OrganizationPreview(ctk.CTkToplevel):
