@@ -15,6 +15,7 @@ import json
 class App(ctk.CTk):
     def __init__(self):
         super().__init__()
+        self.update_idletasks()
 
         window_width = 900
         window_height = 700

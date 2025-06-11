@@ -33,6 +33,7 @@ from bs4 import BeautifulSoup
 import config
 import json
 from postgrest.exceptions import APIError
+import time
 
 
 def get_tesseract_path():
@@ -485,7 +486,11 @@ def simulate_organization(folder_path, categories_dict, progress_callback=None, 
     TITLE_SBERT_THRESHOLD = 0.65    
     CONTENT_SBERT_THRESHOLD = 0.60  
 
+    sleepCounter = 0
+
     for i, filename in enumerate(files_in_folder):
+        sleepCounter += 1
+
         file_path = os.path.join(folder_path, filename)
         base_filename, extension = os.path.splitext(filename)
         extension = extension.lower()
@@ -584,6 +589,10 @@ def simulate_organization(folder_path, categories_dict, progress_callback=None, 
             classified_category = "Outros"
             classification_method_used += "_final_invalid_cat_fallback"
         
+        if sleepCounter % 10 == 0:
+            print(f"--- Atingiu {sleepCounter} arquivos. Pausando por 5 segundos... ---")
+            time.sleep(5)
+
         print(f"  Resultado Final para '{filename}': Categoria='{classified_category}', Método='{classification_method_used}', Datas='{date_str}'")
         files_to_organize.append((filename, classified_category, date_str, classification_method_used))
         if classified_category not in organized_structure: organized_structure[classified_category] = []
