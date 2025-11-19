@@ -57,15 +57,19 @@ Esta seção destina-se a desenvolvedores e colaboradores que desejam entender a
 Abaixo estão listados os requisitos que guiaram o desenvolvimento do software, divididos entre o que o sistema *faz* (Funcionais) e *como* ele deve operar (Não-Funcionais).
 
 #### Requisitos Funcionais (RF)
-* **RF01 - Inicialização e Conectividade:** O sistema deve verificar a conexão com a internet (pingando `google.com`) antes de iniciar a interface gráfica e carregar variáveis de ambiente seguras (`.env`) para conectar ao backend.
-* **RF02 - Autenticação e Sessão:** O sistema deve permitir login e cadastro de usuário utilizando o cliente Supabase inicializado globalmente, mantendo o estado da sessão (usuário atual e token) acessível para todos os módulos.
-* **RF03 - Seleção e Gestão de Diretórios:** O usuário deve poder selecionar uma pasta local para organização, sendo o sistema capaz de listar e filtrar arquivos suportados.
-* **RF04 - Classificação Híbrida (Estratégia de Fallback):**
+* **RF01 - Distribuição Controlada e Autenticação:**
+    * O acesso ao software é restrito. O usuário interessado deve realizar um cadastro prévio (via formulário web ou contato direto).
+    * Após a validação cadastral e aprovação pelo administrador no banco de dados (tabela `profiles`, campo `is_approved` = true), o usuário receberá o executável (`DocuSmartApp.exe`) oficialmente por e-mail.
+    * Ao abrir o executável, o usuário deve realizar o login com as credenciais cadastradas. O sistema validará se a conta existe e se o status de aprovação está ativo antes de liberar o acesso às funcionalidades.
+* **RF02 - Inicialização e Conectividade:** O sistema deve verificar a conexão com a internet (pingando `google.com`) antes de iniciar a interface gráfica e carregar variáveis de ambiente seguras (`.env`) para conectar ao backend.
+* **RF03 - Autenticação e Sessão:** O sistema deve permitir login e cadastro de usuário utilizando o cliente Supabase inicializado globalmente, mantendo o estado da sessão (usuário atual e token) acessível para todos os módulos.
+* **RF04 - Seleção e Gestão de Diretórios:** O usuário deve poder selecionar uma pasta local para organização, sendo o sistema capaz de listar e filtrar arquivos suportados.
+* **RF05 - Classificação Híbrida (Estratégia de Fallback):**
     * **Nível 1 (Nuvem):** Uso de Edge Functions e IA Generativa (Google Gemini) para classificação semântica de alta precisão, consumindo créditos do usuário.
     * **Nível 2 (Local):** Uso de modelo SBERT (`paraphrase-multilingual-mpnet-base-v2`) e Regex para classificação offline e gratuita quando não houver créditos ou internet.
-* **RF05 - Extração de Texto (OCR/Parsing):** Extração de texto de múltiplos formatos (`.pdf`, `.docx`, imagens, planilhas) com integração de OCR (Tesseract/Poppler) para documentos digitalizados.
-* **RF06 - Visualização e Auditoria:** Apresentar uma prévia da estrutura de pastas proposta, permitindo ao usuário modificar manualmente a categoria de qualquer arquivo antes da execução.
-* **RF07 - Cache de Processamento:** Armazenar o hash SHA-256 dos arquivos já processados para evitar consumo duplicado de recursos (tempo/créditos).
+* **RF06 - Extração de Texto (OCR/Parsing):** Extração de texto de múltiplos formatos (`.pdf`, `.docx`, imagens, planilhas) com integração de OCR (Tesseract/Poppler) para documentos digitalizados.
+* **RF07 - Visualização e Auditoria:** Apresentar uma prévia da estrutura de pastas proposta, permitindo ao usuário modificar manualmente a categoria de qualquer arquivo antes da execução.
+* **RF08 - Cache de Processamento:** Armazenar o hash SHA-256 dos arquivos já processados para evitar consumo duplicado de recursos (tempo/créditos).
 
 #### Requisitos Não-Funcionais (RNF)
 * **RNF01 - Compatibilidade com Windows:** O sistema deve implementar políticas de *Event Loop* específicas (`WindowsSelectorEventLoopPolicy`) para evitar erros de concorrência da biblioteca `asyncio` em ambientes Windows.
@@ -126,25 +130,54 @@ Esta seção detalha as técnicas de programação, bibliotecas e padrões de pr
 * **Tratamento de Exceções:**
     * O módulo de configuração captura exceções genéricas na inicialização do Supabase e na verificação de internet (`requests.ConnectionError`, `requests.Timeout`) para garantir que a aplicação não encerre abruptamente durante o *boot*, permitindo tratamento de erro gracioso na UI.
 
+### 5. Compilação e Geração do Executável (Build)
+
+Para distribuir a aplicação aos usuários finais, o código fonte Python deve ser "congelado" em um executável autônomo (`.exe`) que contenha todas as dependências (bibliotecas, interpretador Python, arquivos de modelo e ícones).
+
+**Pré-requisitos de Build:**
+* Ambiente Python configurado com todas as dependências do `requirements.txt` instaladas.
+* Biblioteca `PyInstaller` instalada.
+* Arquivo de especificação `DocuSmartApp.spec` configurado corretamente na raiz do projeto.
+* Arquivo de ícone `robot-head.ico` presente na raiz.
+
+**Comando de Geração:**
+Para gerar uma nova versão do executável, execute o seguinte comando no terminal, na raiz do projeto:
+
+```bash
+pyinstaller DocuSmartApp.spec
+```
+
 ## 📖 Manual de Utilização para Usuários Contemplados
 
 Este manual foi elaborado para guiar todos os tipos de usuários no uso seguro e eficiente do **DocuSmart**. Siga os roteiros abaixo para realizar as principais tarefas do sistema.
 
-### 1. Acesso ao Sistema (Login e Cadastro)
+### 1. Instalação, Cadastro e Acesso ao Sistema
 
-Esta função permite que você entre na sua conta segura para acessar seus créditos e configurações.
+Diferente de programas convencionais, o DocuSmart é uma ferramenta exclusiva distribuída sob aprovação. Esta seção guia você desde o recebimento do arquivo até o seu primeiro login.
 
-> **📋 Guia de Instruções**
+> **📋 Guia de Obtenção e Instalação**
 >
-> **Para ACESSAR SUA CONTA OU CADASTRAR-SE faça:**
+> **Para INSTALAR O PROGRAMA NO SEU COMPUTADOR faça:**
 >
-> 1.  Abra o aplicativo DocuSmart. Uma janela intitulada **"Acesso DocuSmart"** será exibida .
-> 2.  **Se você já possui conta:** Digite seu *E-mail* e *Senha* nos campos indicados e clique no botão **"Entrar"**.
-> 3.  **Se for seu primeiro acesso:**
+> 1.  **Solicitação:** Realize seu cadastro inicial ou solicitação de acesso em [https://preview--smartdoc-organizer-ai.lovable.app/](https://preview--smartdoc-organizer-ai.lovable.app/).
+> 2.  **Recebimento:** Após a aprovação, você receberá um e-mail oficial contendo o arquivo `DocuSmartApp.exe` (ou um link seguro para baixá-lo).
+> 3.  **Instalação:** Salve o arquivo em uma pasta segura no seu computador (ex: "Documentos/DocuSmart").
+>     * *Nota:* Como é um executável portátil, não é necessário rodar um instalador. Basta salvar o arquivo na pasta desejada.
+> 4.  **Atalho (Opcional):** Clique com o botão direito no arquivo, selecione "Enviar para" > "Área de Trabalho (criar atalho)" para facilitar o acesso futuro.
+
+> **📋 Guia de Acesso (Login e Cadastro)**
+>
+> **Para ENTRAR NA SUA CONTA OU CADASTRAR-SE faça:**
+>
+> 1.  Dê um clique duplo no ícone do robô ou no atalho criado para abrir o DocuSmart. A janela **"Acesso DocuSmart"** será exibida.
+> 2.  **Se você já possui conta ativa:**
+>     * Digite seu *E-mail* e *Senha* nos campos indicados.
+>     * Clique no botão **"Entrar"**.
+> 3.  **Se for seu primeiro acesso (e ainda não tiver senha):**
 >     * Clique no botão **"Criar Conta"**.
 >     * Preencha seu *Nome Completo*, *Email* e escolha uma *Senha* (mínimo de 6 caracteres).
 >     * Clique em **"Cadastrar"**.
-> 4.  **Ativação:** Após o cadastro, acesse sua caixa de entrada de e-mail, abra a mensagem de confirmação enviada pelo sistema e clique no link de ativação. Retorne ao aplicativo para fazer o login.
+> 4.  **Ativação:** Após o cadastro, acesse sua caixa de entrada de e-mail, abra a mensagem de confirmação enviada pelo sistema e clique no link de ativação. Só então retorne ao aplicativo para fazer o login.
 >
 > *>>> Dica: Se esqueceu sua senha, clique no link "Esqueceu sua senha?" na tela de login para abrir a página de redefinição no seu navegador padrão.*
 
@@ -154,7 +187,7 @@ Esta função permite que você entre na sua conta segura para acessar seus cré
     * **Então faça:** Verifique se o seu cabo de rede ou Wi-Fi estão conectados. O DocuSmart precisa de internet para validar suas credenciais de segurança.
 
 * **Se o sistema exibir:** `Sua conta ainda está aguardando aprovação`
-    * **É porque:** Seu cadastro foi realizado com sucesso, mas o administrador do sistema ainda não liberou seu acesso manualmente no painel administrativo.
+    * **É porque:** Seu cadastro foi realizado com sucesso, mas o administrador do sistema ainda não liberou seu acesso manualmente no painel administrativo. O login será bloqueado até que essa aprovação ocorra.
 
 * **Se o sistema exibir:** `E-mail ou senha inválidos`
     * **Então faça:** Verifique se digitou o e-mail corretamente (ex: sem espaços extras) e se a tecla *Caps Lock* não está ativada acidentalmente.
