@@ -125,3 +125,116 @@ Esta seção detalha as técnicas de programação, bibliotecas e padrões de pr
     * O arquivo `config.py` implementa um padrão Singleton implícito. A variável `supabase` é inicializada como `None` e instanciada apenas uma vez na função `init_supabase`, sendo depois importada por outros módulos sem re-instanciação, garantindo uma única conexão ativa.
 * **Tratamento de Exceções:**
     * O módulo de configuração captura exceções genéricas na inicialização do Supabase e na verificação de internet (`requests.ConnectionError`, `requests.Timeout`) para garantir que a aplicação não encerre abruptamente durante o *boot*, permitindo tratamento de erro gracioso na UI.
+
+## 📖 Manual de Utilização para Usuários Contemplados
+
+Este manual foi elaborado para guiar todos os tipos de usuários no uso seguro e eficiente do **DocuSmart**. Siga os roteiros abaixo para realizar as principais tarefas do sistema.
+
+### 1. Acesso ao Sistema (Login e Cadastro)
+
+Esta função permite que você entre na sua conta segura para acessar seus créditos e configurações.
+
+> **📋 Guia de Instruções**
+>
+> **Para ACESSAR SUA CONTA OU CADASTRAR-SE faça:**
+>
+> 1.  Abra o aplicativo DocuSmart. Uma janela intitulada **"Acesso DocuSmart"** será exibida .
+> 2.  **Se você já possui conta:** Digite seu *E-mail* e *Senha* nos campos indicados e clique no botão **"Entrar"**.
+> 3.  **Se for seu primeiro acesso:**
+>     * Clique no botão **"Criar Conta"**.
+>     * Preencha seu *Nome Completo*, *Email* e escolha uma *Senha* (mínimo de 6 caracteres).
+>     * Clique em **"Cadastrar"**.
+> 4.  **Ativação:** Após o cadastro, acesse sua caixa de entrada de e-mail, abra a mensagem de confirmação enviada pelo sistema e clique no link de ativação. Retorne ao aplicativo para fazer o login.
+>
+> *>>> Dica: Se esqueceu sua senha, clique no link "Esqueceu sua senha?" na tela de login para abrir a página de redefinição no seu navegador padrão.*
+
+**⚠️ Exceções ou Potenciais Problemas**
+
+* **Se o sistema exibir:** `Erro: Sem conexão com a internet`
+    * **Então faça:** Verifique se o seu cabo de rede ou Wi-Fi estão conectados. O DocuSmart precisa de internet para validar suas credenciais de segurança.
+
+* **Se o sistema exibir:** `Sua conta ainda está aguardando aprovação`
+    * **É porque:** Seu cadastro foi realizado com sucesso, mas o administrador do sistema ainda não liberou seu acesso manualmente no painel administrativo.
+
+* **Se o sistema exibir:** `E-mail ou senha inválidos`
+    * **Então faça:** Verifique se digitou o e-mail corretamente (ex: sem espaços extras) e se a tecla *Caps Lock* não está ativada acidentalmente.
+
+---
+
+### 2. Gerenciamento de Categorias (Configuração)
+
+Esta função permite personalizar como o DocuSmart deve classificar seus arquivos.
+
+> **📋 Guia de Instruções**
+>
+> **Para CRIAR, EDITAR OU REMOVER CATEGORIAS faça:**
+>
+> 1.  Na tela principal, clique no botão **"⚙️ Gerenciar Categorias"** .
+> 2.  **Para Adicionar:**
+>     * Vá até a seção "Adicionar Nova Categoria".
+>     * Digite o *Nome* (ex: "Escola" ou "Notas Fiscais").
+>     * Digite uma *Descrição* detalhada sobre o que deve ser guardado nela.
+>     * Clique em **"➕ Adicionar Categoria"**.
+> 3.  **Para Remover:** Localize a categoria desejada na lista superior e clique no botão **"Remover"** ao lado dela.
+> 4.  **Para Salvar:** Clique em **"✅ Salvar e Fechar"** para aplicar suas alterações.
+>
+> *>>> Alternativa Inteligente: Se estiver sem criatividade para a descrição, digite apenas o Nome da categoria e clique no botão "Sugerir Descrição com IA ✨". O sistema escreverá a descrição para você automaticamente.*
+
+**⚠️ Exceções ou Potenciais Problemas**
+
+* **Se você tentar remover as categorias:** `Outros` ou `Imagens`
+    * **É porque:** Estas são categorias essenciais do sistema e são protegidas. "Outros" recebe arquivos desconhecidos e "Imagens" recebe fotos sem texto legível, garantindo que nenhum arquivo se perca.
+
+* **Se o sistema avisar:** `A categoria já existe`
+    * **Então faça:** Escolha um nome diferente para sua nova categoria ou, se quiser mudar a descrição da existente, remova a antiga primeiro e adicione-a novamente com o novo texto.
+
+---
+
+### 3. Organização de Documentos (Execução)
+
+Esta é a tarefa principal do sistema: ler uma pasta bagunçada e sugerir uma organização.
+
+> **📋 Guia de Instruções**
+>
+> **Para ORGANIZAR UMA PASTA DE ARQUIVOS faça:**
+>
+> 1.  Clique no botão **"📂 Selecionar Pasta"** e navegue até o diretório no seu computador onde estão os arquivos que deseja organizar.
+> 2.  Confirme se o caminho da pasta selecionada aparece na tela.
+> 3.  Escolha o **Modo de Organização**:
+>     * **Opção A (Modelo Local):** Clique em **"🔍 Visualizar (Modelo Local)"**. Use esta opção para arquivos simples, gratuitos e sem necessidade de internet.
+>     * **Opção B (Inteligência Artificial):** Clique em **"✨ Visualizar (IA Gemini)"**. Use esta opção para documentos complexos ou ambíguos. Note que isso consumirá seus créditos.
+> 4.  Aguarde enquanto a barra de progresso processa seus arquivos 
+>
+> *>>> Contexto: Se você escolher a IA Gemini mas tiver, por exemplo, 50 arquivos e apenas 10 créditos, o sistema processará os 10 primeiros com a IA e o restante com o Modelo Local automaticamente.*
+
+**⚠️ Exceções ou Potenciais Problemas**
+
+* **Se o botão estiver desativado:** `Visualizar (IA Gemini)`
+    * **É porque:** Seu saldo de créditos acabou. Você deve utilizar o "Modelo Local" ou solicitar uma recarga ao administrador.
+
+* **Se a barra de progresso parecer travada:**
+    * **É porque:** A pasta pode conter arquivos muito grandes (vídeos ou PDFs de alta resolução). O sistema pode demorar alguns minutos para extrair o texto ou enviar os dados para a nuvem. Aguarde a conclusão sem fechar o programa.
+
+---
+
+### 4. Revisão e Confirmação (Prévia)
+
+Esta etapa permite que você tenha controle total sobre o resultado antes que qualquer arquivo seja movido de lugar.
+
+> **📋 Guia de Instruções**
+>
+> **Para REVISAR O RESULTADO E MOVER OS ARQUIVOS faça:**
+>
+> 1.  Após o processamento, a janela **"Prévia da Organização"** será aberta automaticamente 
+> 2.  Role a lista para ver a estrutura de pastas sugerida (ex: `📂 Financeiro/`).
+> 3.  **Para Corrigir um Erro:** Se um arquivo foi classificado errado, clique no botão **"Modificar"** ao lado do nome dele e selecione a categoria correta na lista.
+> 4.  **Para Finalizar:** Se estiver satisfeito com a organização, clique em **"✅ Confirmar Organização"**.
+> 5.  O sistema moverá os arquivos fisicamente no seu computador e exibirá uma mensagem de sucesso.
+
+**⚠️ Exceções ou Potenciais Problemas**
+
+* **Se um arquivo aparecer em:** `🚫 Outros (Não processável)`
+    * **É porque:** O arquivo está corrompido, protegido por senha ou é uma imagem onde o texto não pôde ser lido pelo OCR. Ele será movido para uma pasta "Outros (Não processável)" para que você o verifique manualmente depois.
+
+* **Se o sistema avisar:** `Arquivo já existe. Renomeando...`
+    * **É porque:** A pasta de destino já contém um arquivo com o mesmo nome. Para evitar sobrescrever e perder seus dados, o DocuSmart salvará o novo arquivo adicionando um número ao final (ex: `contrato_1.pdf`).
