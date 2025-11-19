@@ -1,9 +1,12 @@
 import os
 import requests
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
-SUPABASE_URL = "https://fezhvhzorzdwzbrexwgu.supabase.co"
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZlemh2aHpvcnpkd3picmV4d2d1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg2Mzg4MTEsImV4cCI6MjA2NDIxNDgxMX0.sGyjrLa2Ey-s46muPFEvVzUnGF1fHnFFOBoi6YhZ1Lg"
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
 
 supabase = None
