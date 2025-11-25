@@ -101,7 +101,48 @@ O DocuSmart utiliza uma arquitetura modular onde a configuração e o estado sã
 #### Modelo de Dados Local
 * **Cache (`cache_{user_id}.json`):** Armazenamento chave-valor local (JSON) onde a chave é o Hash SHA-256 do arquivo e o valor é a categoria atribuída. Isso permite persistência de decisões entre sessões.
 
-### 3. Descrição Funcional (O Pipeline de Organização)
+### 3. Configuração do Backend e Infraestrutura (Supabase)
+
+O backend do DocuSmart foi construído sobre a plataforma **Supabase**, utilizando uma arquitetura *serverless* para garantir escalabilidade e segurança. Abaixo estão detalhadas as configurações realizadas nos principais módulos do serviço.
+
+#### Banco de Dados e Tabelas (PostgreSQL)
+O banco de dados foi estruturado para gerenciar os dados complementares dos usuários que não são nativos do módulo de autenticação.
+
+* **Tabela `profiles`:** Criada para estender as informações do usuário. Esta tabela possui uma relação *um-para-um* com a tabela interna `auth.users`.
+    * **Colunas Principais:** `id` (chave estrangeira ligada ao auth.uid), `full_name`, `credits_remaining` (saldo para uso da IA) e `is_approved` (booleano para controle de acesso).
+* **Triggers e Functions (PL/pgSQL):** Foi configurada uma *Trigger* automática no banco de dados (`on_auth_user_created`) para que, sempre que um novo usuário se cadastre no sistema, uma entrada correspondente seja criada automaticamente na tabela `profiles` com os valores padrão (créditos zerados e aprovação pendente).
+
+#### Autenticação (Auth)
+O módulo de autenticação foi configurado para suportar o fluxo de entrada via E-mail e Senha.
+
+* **Provedor:** Habilitado o provedor "Email" nativo.
+* **Confirmação de E-mail:** A opção "Enable Email Confirmations" foi mantida ativa para garantir a veracidade dos cadastros. O usuário só consegue efetuar login após clicar no link enviado.
+* **Templates de E-mail:** Os modelos de e-mail ("Confirm Your Signup" e "Reset Password") foram personalizados para refletir a identidade visual do DocuSmart e redirecionar o usuário para as páginas de feedback corretas (ex: Landing Page do Lovable).
+
+#### Edge Functions (Lógica Serverless)
+Para integrar a Inteligência Artificial sem expor chaves de API no cliente Desktop, foram desenvolvidas e implantadas duas **Supabase Edge Functions** utilizando Deno e TypeScript.
+
+* **Função `classify-document-file`:**
+    * **Objetivo:** Receber arquivos binários (PDFs/Imagens) codificados em Base64 e enviá-los para a API do Google Gemini.
+    * **Configuração:** Ajustada para utilizar o modelo `gemini-2.0-flash` na versão `v1` da API, garantindo maior estabilidade e suporte a arquivos.
+    * **Segurança:** Validação de token JWT ativa para garantir que apenas usuários logados possam invocá-la.
+* **Função `classify-document-gemini`:**
+    * **Objetivo:** Receber texto puro extraído localmente e classificá-lo semanticamente.
+    * **Configuração:** Possui lógica de *fallback* robusta para interpretar respostas da IA e convertê-las em categorias JSON válidas.
+* **Deploy:** As funções foram implantadas via Supabase CLI (`supabase functions deploy`), garantindo versionamento e atualização rápida sem necessidade de redistribuir o executável do cliente.
+
+#### Gerenciamento de Segredos (Secrets)
+A segurança das chaves de API foi priorizada através do uso de variáveis de ambiente em dois níveis:
+
+* **No Cliente (Desktop):** As credenciais de conexão com o Supabase (`SUPABASE_URL` e `SUPABASE_KEY`) são injetadas via arquivo `.env` e carregadas pela biblioteca `python-dotenv` durante a inicialização, evitando que fiquem expostas diretamente no código fonte.
+* **No Servidor (Edge Functions):** A chave da API do Google Gemini (`GEMINI_API_KEY_EDGE`) não trafega pela rede. Ela foi configurada diretamente no cofre de segredos do Supabase via CLI (`supabase secrets set`), sendo acessível apenas pelo ambiente de execução do servidor (Deno).
+
+#### Políticas de Segurança (RLS)
+Foi ativado o **Row Level Security (RLS)** na tabela `profiles`.
+* **Política de Leitura:** Usuários só podem ler ("SELECT") os dados da sua própria linha (onde `auth.uid() == id`).
+* **Política de Atualização:** O campo de créditos (`credits_remaining`) é gerenciado pelo sistema, garantindo que usuários não possam alterar seu próprio saldo arbitrariamente.
+
+### 4. Descrição Funcional (O Pipeline de Organização)
 
 O pipeline de organização implementado em `organizer.py` segue o fluxo lógico abaixo:
 
@@ -113,7 +154,7 @@ O pipeline de organização implementado em `organizer.py` segue o fluxo lógico
     * *Sem Créditos/Internet:* Usa modelo local SBERT.
 5.  **Execução:** Move os arquivos fisicamente para a estrutura de pastas aprovada, resolvendo conflitos de nomes.
 
-### 4. Sobre o Código
+### 5. Sobre o Código
 
 Esta seção detalha as técnicas de programação, bibliotecas e padrões de projeto utilizados.
 
@@ -130,7 +171,7 @@ Esta seção detalha as técnicas de programação, bibliotecas e padrões de pr
 * **Tratamento de Exceções:**
     * O módulo de configuração captura exceções genéricas na inicialização do Supabase e na verificação de internet (`requests.ConnectionError`, `requests.Timeout`) para garantir que a aplicação não encerre abruptamente durante o *boot*, permitindo tratamento de erro gracioso na UI.
 
-### 5. Compilação e Geração do Executável (Build)
+### 6. Compilação e Geração do Executável (Build)
 
 Para distribuir a aplicação aos usuários finais, o código fonte Python deve ser "congelado" em um executável autônomo (`.exe`) que contenha todas as dependências (bibliotecas, interpretador Python, arquivos de modelo e ícones).
 
