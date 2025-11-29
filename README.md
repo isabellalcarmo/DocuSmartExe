@@ -1,109 +1,120 @@
 # **DocuSmart**
 
-> **Organizador inteligente de documentos com IA Híbrida (Local + Cloud)**
+> **Organizador Inteligente de Documentos com IA Híbrida (Local + Cloud)**
 
-Aplicação desktop para classificação e organização automática de arquivos. Utiliza uma abordagem híbrida: modelo local SBERT para triagem rápida/offline e Google Gemini (via Supabase Edge Functions) para análise semântica profunda. Interface construída em CustomTkinter.
+Aplicação desktop para classificação e organização automática de arquivos digitais. O DocuSmart combina privacidade e eficiência através de uma arquitetura híbrida: utiliza o modelo **SBERT** localmente para triagem rápida e sem custos, e integra o **Google Gemini** (via Supabase Edge Functions) para análises semânticas complexas na nuvem.
 
-## Visão Geral
-- **Frontend/Desktop:** Python 3.10+ com CustomTkinter (GUI) e multithreading para não congelar a interface.
-- **Backend:** Supabase (Auth para login, Database para perfis, Edge Functions para lógica serverless).
-- **IA Local:** `sentence-transformers` (SBERT) + Regex para classificação sem custos.
-- **IA Cloud:** Google Gemini 2.0 Flash (via Edge Functions em Deno/TypeScript) para alta precisão.
-- **OCR:** Integração com Tesseract e Poppler para extração de texto em imagens e PDFs escaneados.
-- **Persistência Local:** Cache JSON (`cache_{user_id}.json`) para evitar reprocessamento de arquivos conhecidos.
+---
 
-## Estrutura do Projeto
+## 🚀 Visão Geral da Arquitetura
+
+* **Frontend:** Python 3.10+ com **CustomTkinter** (Interface Moderna) e gerenciamento de *threads* para responsividade.
+* **Backend:** **Supabase** (Auth, Database e Edge Functions).
+* **IA Local (Offline):** `sentence-transformers` (SBERT) + Regex.
+* **IA Cloud (Online):** Google Gemini 2.0 Flash executado em ambiente serverless (Deno/TypeScript).
+* **OCR & Parsing:** Integração nativa com **Tesseract** e **Poppler** para leitura de imagens e PDFs escaneados.
+* **Performance:** Sistema de cache local JSON (`cache_{user_id}.json`) para evitar reprocessamento redundante.
+
+---
+
+## 📂 Estrutura do Projeto
+
 ```bash
 docusmart/
-├── docusmart_app.py              # Entry point da GUI, login e controle de threads
-├── organizer.py                  # Lógica de negócio (OCR, Classificação, API, Cache)
-├── config.py                     # Gerenciamento de envs, conexão Supabase e Singleton
-├── fix_asyncio.py                # Patch de compatibilidade de Event Loop para Windows
-├── requirements.txt              # Dependências Python (pip)
-├── DocuSmartApp.spec             # Especificação para build do executável (PyInstaller)
-├── robot-head.ico                # Ícone da aplicação
-
-├── tesseract/                    # Binários portáteis do Tesseract OCR
-
-├── poppler-24.08.0/              # Binários do Poppler usados para extrair texto de PDFs
-
+├── docusmart_app.py              # Ponto de entrada (GUI, Login, Threads)
+├── organizer.py                  # Motor lógico (OCR, Classificação, API, Cache)
+├── config.py                     # Configuração de ambiente e Singleton do Supabase
+├── fix_asyncio.py                # Patch de compatibilidade (Event Loop Windows)
+├── requirements.txt              # Dependências do Python
+├── DocuSmartApp.spec             # Script de build (PyInstaller)
+├── robot-head.ico                # Assets gráficos
+│
+├── tesseract/                    # Binários portáteis do OCR
+├── poppler-24.08.0/              # Binários para manipulação de PDF
+│
+├── modelos/                      # [GitIgnored] Pesos do modelo SBERT (Ver seção abaixo)
+│
 └── supabase/
-    └── functions/                # Código das Edge Functions (TypeScript)
-        ├── classify-document-file/         # Função para upload de arquivos (Base64)
-        ├── classify-document-gemini/       # Função para processamento de texto puro
-        └── generate-category-description/  # Função para gerar descrição de categoria
-
+    └── functions/                # Serverless Edge Functions (TypeScript)
+        ├── classify-document-file/       # Upload e análise de arquivos
+        ├── classify-document-gemini/     # Análise de texto puro
+        └── generate-category-description/# Auxiliar de UX
 ```
 
-## Pré-requisitos
+## ⚠️ Configuração Crítica: Modelos de IA Local
 
-Para executar o projeto a partir do código fonte (modo desenvolvedor), você precisará de:
+Devido ao tamanho dos arquivos de pesos neurais, a pasta `modelos/` não está incluída no repositório. Portanto, para que a aplicação funcione, você deve baixar o modelo SBERT manualmente.
+
+**Passo a passo**:
+
+1. Crie um arquivo chamado `download_model.py` na raiz do projeto.
+2. Cole o código abaixo e execute-o (`python download_model.py`).
+
+```python
+from sentence_transformers import SentenceTransformer
+import os
+
+# Define o modelo e o caminho de destino
+model_name = 'paraphrase-multilingual-mpnet-base-v2'
+save_path = os.path.join('modelos', model_name)
+
+print(f"Iniciando download do modelo '{model_name}'...")
+model = SentenceTransformer(model_name)
+model.save(save_path)
+print(f"Sucesso! Modelo salvo em: {save_path}")
+```
+
+## 🛠️ Setup de Desenvolvimento
+
+1. **Pré-requisitos**
 
 - Python 3.10 ou superior.
-- Tesseract OCR instalado e adicionado ao PATH do sistema.
-- Poppler (para manipulação de PDF) instalado e adicionado ao PATH.
-- Conta no Supabase (para as chaves de API).
+- Conta no Supabase (Project URL e Anon Key).
+- Dependências de Sistema:
+    - Tesseract OCR e Poppler instalados e adicionados ao PATH (ou presentes nas pastas locais /tesseract e /poppler).
 
-## Setup de Desenvolvimento
-
-1. Configurar Ambiente Python
+2. **Ambiente Virtual e Dependências**
 
 ```bash
-# Criar virtual environment
+# 1. Criar ambiente virtual
 python -m venv venv
 
-# Ativar virtual environment
+# 2. Ativar ambiente
 # Windows:
 venv\Scripts\activate
-
-# Mac/Linux:
+# Linux/Mac:
 source venv/bin/activate
 
-# Instalar dependências do projeto
+# 3. Instalar pacotes
 pip install -r requirements.txt
 ```
 
-2. Configurar Variáveis de Ambiente
+3. **Variáveis de Ambiente**
 
-Crie um arquivo `.env` na raiz do projeto (mesmo nível de `config.py`) com as suas credenciais do Supabase. O sistema usa a biblioteca python-dotenv para ler este arquivo.
+Crie um arquivo .env na raiz do projeto com as credenciais do seu backend:
 
 ```bash
 SUPABASE_URL="sua_url_do_projeto_supabase"
 SUPABASE_KEY="sua_anon_key_publica"
 ```
 
-> **Nota Importante**: A chave da API do Google Gemini NÃO deve ser colocada aqui. Ela deve ser configurada nos Secrets do seu projeto Supabase com o nome `GEMINI_API_KEY_EDGE`.
+> **Segurança**: A chave da API do Google Gemini NÃO deve estar neste arquivo. Ela deve ser configurada exclusivamente nos Secrets do Supabase com a chave `GEMINI_API_KEY_EDGE`.
 
-3. Executar a Aplicação
+4. **Executar a Aplicação**
+
+Com o modelo baixado e as dependências instaladas:
 
 ```bash
-# Iniciar a interface gráfica
 python docusmart_app.py
 ```
 
-## Configuração e Dependências Externas (OCR)
+## 📦 Build e Distribuição
 
-O módulo `organizer.py` tenta localizar as ferramentas de OCR automaticamente. Se você encontrar erros como "OCR não encontrado" ou falha ao processar imagens, verifique:
+Para gerar o executável autônomo (`.exe`) para distribuição em Windows. O arquivo `.spec` já está configurado para incluir os binários do Tesseract, Poppler e o ícone.
 
-1. **Tesseract**: O código busca o executável no PATH do sistema ou, se estiver rodando o executável compilado, na pasta interna `/tesseract/`.
-2. **Poppler**: O código busca os binários na pasta local `/poppler/bin` ou no PATH.
-
-Desenvolvedores: Se suas instalações estiverem em diretórios não padronizados, edite as funções `get_tesseract_path()` e `get_poppler_path()` em `organizer.py`.
-
-## Build (Gerar Executável)
-
-Para gerar o arquivo `.exe` para distribuição (Windows), utilize o PyInstaller com o arquivo de especificação incluído, que já trata das dependências ocultas e ícones.
+**Nota**: Certifique-se de que a pasta `modelos/` foi gerada antes de rodar este comando.
 
 ```bash
-# Gera o executável na pasta dist/
+# O executável será gerado na pasta dist/
 pyinstaller DocuSmartApp.spec
 ```
-
-## Testes e Logs
-
-**Logs de Execução**: A aplicação exibe logs detalhados na caixa de texto à direita da interface gráfica.
-
-**Limpeza de Cache**: Para forçar o reprocessamento de arquivos e testar a IA novamente, apague os arquivos .json gerados na pasta de dados do aplicativo:
-
-- **Windows**: `%APPDATA%\DocuSmart`
-- **Mac/Linux**: `~/.config/DocuSmart`
