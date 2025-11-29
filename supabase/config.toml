@@ -1,0 +1,33 @@
+
+[functions.classify-document-gemini]
+enabled = true
+verify_jwt = true
+import_map = "./functions/classify-document-gemini/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/classify-document-gemini/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/classify-document-gemini/*.html" ]
+
+[functions.generate-category-description]
+enabled = true
+verify_jwt = true
+import_map = "./functions/generate-category-description/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/generate-category-description/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/generate-category-description/*.html" ]
+
+[functions.classify-document-file]
+enabled = true
+verify_jwt = true
+import_map = "./functions/classify-document-file/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/classify-document-file/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/classify-document-file/*.html" ]

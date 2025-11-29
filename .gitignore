@@ -11,7 +11,7 @@ modelos/
 modelos-updated/
 poppler-24.08.0/
 tesseract/
-supabase/
+# supabase/
 
 # Distribution / packaging
 .Python
