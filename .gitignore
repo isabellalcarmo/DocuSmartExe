@@ -10,7 +10,7 @@ __pycache__/
 modelos/
 modelos-updated/
 poppler-24.08.0/
-tesseract/
+# tesseract/
 # supabase/
 
 # Distribution / packaging
