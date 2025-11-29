@@ -9,7 +9,7 @@ __pycache__/
 # Folder to ignore
 modelos/
 modelos-updated/
-poppler-24.08.0/
+# poppler-24.08.0/
 # tesseract/
 # supabase/
 

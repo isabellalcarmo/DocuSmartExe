@@ -15,18 +15,24 @@ Aplicação desktop para classificação e organização automática de arquivos
 ## Estrutura do Projeto
 ```bash
 docusmart/
-├── docusmart_app.py      # Entry point da GUI, login e controle de threads
-├── organizer.py          # Lógica de negócio (OCR, Classificação, API, Cache)
-├── config.py             # Gerenciamento de envs, conexão Supabase e Singleton
-├── fix_asyncio.py        # Patch de compatibilidade de Event Loop para Windows
-├── requirements.txt      # Dependências Python (pip)
-├── DocuSmartApp.spec     # Especificação para build do executável (PyInstaller)
-├── robot-head.ico        # Ícone da aplicação
+├── docusmart_app.py              # Entry point da GUI, login e controle de threads
+├── organizer.py                  # Lógica de negócio (OCR, Classificação, API, Cache)
+├── config.py                     # Gerenciamento de envs, conexão Supabase e Singleton
+├── fix_asyncio.py                # Patch de compatibilidade de Event Loop para Windows
+├── requirements.txt              # Dependências Python (pip)
+├── DocuSmartApp.spec             # Especificação para build do executável (PyInstaller)
+├── robot-head.ico                # Ícone da aplicação
+
+├── tesseract/                    # Binários portáteis do Tesseract OCR
+
+├── poppler-24.08.0/              # Binários do Poppler usados para extrair texto de PDFs
+
 └── supabase/
-    └── functions/        # Código das Edge Functions (TypeScript)
+    └── functions/                # Código das Edge Functions (TypeScript)
         ├── classify-document-file/         # Função para upload de arquivos (Base64)
-        └── classify-document-gemini/       # Função para processamento de texto puro
-        └── generate-category-description/  # Função geração de descrição da categoria
+        ├── classify-document-gemini/       # Função para processamento de texto puro
+        └── generate-category-description/  # Função para gerar descrição de categoria
+
 ```
 
 ## Pré-requisitos
