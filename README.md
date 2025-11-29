@@ -72,7 +72,7 @@ SUPABASE_URL="sua_url_do_projeto_supabase"
 SUPABASE_KEY="sua_anon_key_publica"
 ```
 
-> **Nota Importante**: A chave da API do Google Gemini NÃO deve ser colocada aqui. Ela deve ser configurada nos Secrets do seu projeto Supabase (Dashboard > Project Settings > Edge Functions > Secrets) com o nome GEMINI_API_KEY_EDGE.
+> **Nota Importante**: A chave da API do Google Gemini NÃO deve ser colocada aqui. Ela deve ser configurada nos Secrets do seu projeto Supabase com o nome `GEMINI_API_KEY_EDGE`.
 
 3. Executar a Aplicação
 
@@ -85,8 +85,8 @@ python docusmart_app.py
 
 O módulo `organizer.py` tenta localizar as ferramentas de OCR automaticamente. Se você encontrar erros como "OCR não encontrado" ou falha ao processar imagens, verifique:
 
-1. Tesseract: O código busca o executável no PATH do sistema ou, se estiver rodando o executável compilado, na pasta interna `/_internal/tesseract/`.
-2. Poppler: O código busca os binários na pasta local `/_internal/poppler/bin` ou no PATH.
+1. **Tesseract**: O código busca o executável no PATH do sistema ou, se estiver rodando o executável compilado, na pasta interna `/tesseract/`.
+2. **Poppler**: O código busca os binários na pasta local `/poppler/bin` ou no PATH.
 
 Desenvolvedores: Se suas instalações estiverem em diretórios não padronizados, edite as funções `get_tesseract_path()` e `get_poppler_path()` em `organizer.py`.
 
@@ -105,5 +105,5 @@ pyinstaller DocuSmartApp.spec
 
 **Limpeza de Cache**: Para forçar o reprocessamento de arquivos e testar a IA novamente, apague os arquivos .json gerados na pasta de dados do aplicativo:
 
-- Windows: `%APPDATA%\DocuSmart`
-- Mac/Linux: `~/.config/DocuSmart`
+- **Windows**: `%APPDATA%\DocuSmart`
+- **Mac/Linux**: `~/.config/DocuSmart`
