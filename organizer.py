@@ -130,7 +130,7 @@ def preprocess_image(pil_image):
 def invoke_edge_function_manually(function_name, payload, timeout=120):
     """Chama uma Edge Function do Supabase via request, com controle de timeout."""
     if not config.supabase:
-        raise Exception("Cliente Supabase não inicializado.")
+        raise RuntimeError("Cliente Supabase não inicializado.")
 
     url = f"{config.SUPABASE_URL}/functions/v1/{function_name}"
     headers = {
