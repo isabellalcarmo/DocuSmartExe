@@ -1,3 +1,11 @@
+"""Main application module for the DocuSmart GUI.
+
+This module defines the main application window, login screen, category manager,
+and organization preview windows using the customtkinter library. It orchestrates
+the user interface, handles user interactions, and integrates with the backend
+logic defined in the 'organizer' and 'config' modules.
+"""
+
 import customtkinter as ctk
 import os
 import shutil
@@ -13,10 +21,18 @@ import json
 
 
 class App(ctk.CTk):
+    """The main application window class.
+
+    This class is responsible for the main user interface after login. It handles
+    folder selection, category management, initiating the organization simulation,
+    displaying progress, and logging messages.
+    """
     def __init__(self):
+        """Initializes the main application window and its components."""
         super().__init__()
         self.update_idletasks()
 
+        # --- Window Setup ---
         window_width = 900
         window_height = 700
         screen_width = self.winfo_screenwidth()
@@ -28,6 +44,7 @@ class App(ctk.CTk):
 
         self.title("DocuSmart - Organizador de Documentos")
 
+        # --- Fonts and Colors ---
         self.big_font = ctk.CTkFont(family="Arial", size=18, weight="bold")
         self.medium_font = ctk.CTkFont(family="Arial", size=16)
         self.small_font = ctk.CTkFont(family="Arial", size=14)
@@ -51,6 +68,7 @@ class App(ctk.CTk):
         self.grid_rowconfigure(0, weight=0) 
         self.grid_rowconfigure(1, weight=1) 
 
+        # --- Default Categories ---
         self.default_categories = {
             "Pessoal": "Documentos que comprovam a identidade, cidadania e vínculos civis do indivíduo. Incluem registros oficiais emitidos por órgãos governamentais que são frequentemente exigidos em processos legais, administrativos ou cadastrais. Exemplos: documentos de identidade como RG (Registro Geral) e CPF (Cadastro de Pessoa Física), CNH (Carteira Nacional de Habilitação), passaporte, título de eleitor, certidões de nascimento e casamento, carteira de trabalho e outros registros civis ou de identificação.",
             
@@ -68,10 +86,12 @@ class App(ctk.CTk):
         }
         self.current_categories = self.default_categories.copy()
 
+        # --- Main Control Frame ---
         self.control_frame = ctk.CTkFrame(self, fg_color=self.frame_color, corner_radius=10)
         self.control_frame.grid(row=0, column=0, padx=30, pady=30, sticky="nsew")
         self.control_frame.grid_columnconfigure(0, weight=1) 
 
+        # --- Widgets for Folder Selection ---
         ctk.CTkLabel(self.control_frame, text="Passo 1: Selecione a pasta com seus documentos", font=self.big_font, text_color=self.text_color).grid(row=0, column=0, columnspan=2, padx=10, pady=10, sticky="w")
         self.select_folder_button = ctk.CTkButton(self.control_frame, text="📂 Selecionar Pasta", command=self.select_folder, font=self.medium_font, fg_color=self.primary_color, hover_color="#2980b9", state="disabled")
         self.select_folder_button.grid(row=1, column=0, padx=10, pady=10, sticky="ew")
@@ -79,11 +99,14 @@ class App(ctk.CTk):
         self.selected_folder_path.grid(row=2, column=0, padx=10, pady=5, sticky="w")
         
         ctk.CTkLabel(self.control_frame, text="Passo 2: Verifique e gerencie suas categorias", font=self.big_font, text_color=self.text_color).grid(row=3, column=0, columnspan=2, padx=10, pady=10, sticky="w")
+
+        # --- Widget for Category Management ---
         self.manage_categories_button = ctk.CTkButton(self.control_frame, text="⚙️ Gerenciar Categorias", command=self.open_category_manager, font=self.medium_font, fg_color=self.primary_color, hover_color="#2980b9", state="disabled")
         self.manage_categories_button.grid(row=4, column=0, padx=10, pady=10, sticky="ew")
 
         ctk.CTkLabel(self.control_frame, text="Passo 3: Visualize a Organização", font=self.big_font, text_color=self.text_color).grid(row=5, column=0, columnspan=2, padx=10, pady=(20,5), sticky="w")
-        
+
+        # --- Widgets for Preview ---
         preview_buttons_frame = ctk.CTkFrame(self.control_frame, fg_color="transparent")
         preview_buttons_frame.grid(row=6, column=0, sticky="ew", padx=10, pady=5)
         preview_buttons_frame.grid_columnconfigure(0, weight=1)
@@ -95,6 +118,7 @@ class App(ctk.CTk):
         self.preview_with_gemini_button = ctk.CTkButton(preview_buttons_frame, text="✨ Visualizar (IA Gemini)", command=lambda: self.show_organization_preview(use_gemini_for_this_run=True), state="disabled", font=self.medium_font, fg_color=self.gemini_button_color, hover_color=self.gemini_button_hover_color)
         self.preview_with_gemini_button.grid(row=0, column=1, padx=(5,0), pady=5, sticky="ew")
         
+        # --- Progress Bar and Label ---
         self.progress_bar = ctk.CTkProgressBar(
             self.control_frame,
             orientation="horizontal",
@@ -114,12 +138,14 @@ class App(ctk.CTk):
         self.progress_label.grid(row=8, column=0, padx=10, pady=2, sticky="w") 
         self.progress_label.grid_remove()
 
+        # --- Log Textbox ---
         self.log_textbox = ctk.CTkTextbox(self, width=600, height=300, font=self.small_font, text_color=self.log_text_color, fg_color=self.log_bg_color)
         self.log_textbox.grid(row=1, column=0, padx=30, pady=10, sticky="nsew")
         self.log_textbox.insert("end", "Bem-vindo ao DocuSmart!\nFaça login para começar.\n")
         self.log_textbox.configure(state="disabled")
 
-        self.user_session = None
+        # --- User State ---
+        self.user_session = None # Holds the Supabase session object
         self.current_user = None 
         self.user_credits_remaining = 0
         self.user_credits_total = 0
@@ -127,10 +153,12 @@ class App(ctk.CTk):
         self.after(50, self.show_login_window)
 
     def show_login_window(self):
+        """Displays the modal login window."""
         login_win = LoginWindow(self)
         login_win.grab_set() 
 
     def show_main_application_ui(self):
+        """Makes the main application window visible and updates UI elements after a successful login."""
         self.deiconify()
         self.lift()
         self.focus_force()
@@ -145,6 +173,11 @@ class App(ctk.CTk):
         self.update_idletasks()
 
     def log_message(self, message):
+        """Appends a message to the log textbox in a thread-safe manner.
+
+        Args:
+            message (str): The message to be logged.
+        """
         is_scrolled_to_bottom = self.log_textbox.yview()[1] >= 1.0
 
         self.log_textbox.configure(state="normal")
@@ -157,9 +190,20 @@ class App(ctk.CTk):
         self.update_idletasks()
 
     def update_progress(self, current_val=None, total_val=None, message=None):
+        """Thread-safe method to update the progress bar and label from other threads.
+
+        Args:
+            current_val (int, optional): The current progress value.
+            total_val (int, optional): The total value for progress calculation.
+            message (str, optional): A message to display. If provided, the progress bar
+                                    is set to indeterminate mode.
+        """
         self.after(10, lambda: self._update_progress_ui(current_val, total_val, message))
 
     def _update_progress_ui(self, current_val, total_val, message):
+        """Internal method that performs the actual UI update for the progress bar.
+        This method should only be called via `self.after` to ensure it runs on the main UI thread.
+        """
         if message:
             self.progress_bar.configure(mode="indeterminate")
             self.progress_bar.start()
@@ -173,6 +217,7 @@ class App(ctk.CTk):
         self.update_idletasks()
 
     def select_folder(self):
+        """Opens a dialog for the user to select a folder and updates the UI accordingly."""
         folder_selected = ctk.filedialog.askdirectory()
         if folder_selected:
             self.selected_folder_path.configure(text=f"Pasta selecionada: {folder_selected}")
@@ -189,6 +234,14 @@ class App(ctk.CTk):
         self.progress_label.configure(text="Aguardando...")
 
     def show_organization_preview(self, use_gemini_for_this_run: bool):
+        """Initiates the file organization simulation process.
+
+        It checks for prerequisites, confirms Gemini AI usage and credit consumption with the user,
+        and then starts the simulation in a separate thread.
+
+        Args:
+            use_gemini_for_this_run (bool): Flag indicating if the user chose to use the Gemini AI.
+        """
         if not hasattr(self, 'folder_to_organize') or not self.folder_to_organize:
             CTkMessagebox.CTkMessagebox(title="Pasta não Selecionada", message="Por favor, selecione uma pasta primeiro.", icon="warning", master=self)
             return
@@ -251,7 +304,13 @@ class App(ctk.CTk):
         )
         self.simulation_thread.start()
 
-    def _run_simulation_in_thread(self, use_gemini_decision, available_credits_to_gemini): 
+    def _run_simulation_in_thread(self, use_gemini_decision, available_credits_to_gemini):
+        """Runs the `organizer.simulate_organization` function in a background thread.
+
+        Args:
+            use_gemini_decision (bool): Whether to use the Gemini AI for classification.
+            available_credits_to_gemini (int): The number of credits available for the simulation.
+        """
         files_info, structure_info, gemini_calls_count = organizer.simulate_organization(
             folder_path=self.folder_to_organize, 
             categories_dict=self.current_categories, 
@@ -261,12 +320,22 @@ class App(ctk.CTk):
         )
         self.after(0, lambda: self._post_simulation_ui_update(files_info, structure_info, gemini_calls_count))
 
-    def _post_simulation_ui_update(self, files_info, structure_info, gemini_calls_count): 
+    def _post_simulation_ui_update(self, files_info, structure_info, gemini_calls_count):
+        """Handles UI updates after the simulation is complete.
+
+        This method is called on the main UI thread. It resets the progress bar,
+        updates user credits if Gemini was used, and opens the `OrganizationPreview` window.
+
+        Args:
+            files_info (list): The list of files and their classification results.
+            structure_info (dict): The proposed folder structure.
+            gemini_calls_count (int): The number of Gemini API calls made.
+        """
         self.progress_bar.grid_remove()
         self.progress_label.grid_remove()
         self.progress_bar.set(0)
         self.progress_label.configure(text="Aguardando...")
-        
+
         self.progress_bar.stop()
         self.progress_bar.configure(mode="determinate")
 
@@ -284,6 +353,11 @@ class App(ctk.CTk):
         preview_window.grab_set()
 
     def _update_preview_button_states(self):
+        """Enables or disables the main action buttons based on the current application state.
+
+        Factors considered: user login status, whether a folder is selected, and
+        if the user has Gemini credits.
+        """
         if self.user_session:
             folder_is_selected = hasattr(self, 'folder_to_organize') and self.folder_to_organize
             self.select_folder_button.configure(state="normal")
@@ -304,6 +378,14 @@ class App(ctk.CTk):
             self.preview_with_gemini_button.configure(state="disabled")
 
     def handle_preview_confirmation(self, confirmed, final_files_info):
+        """Callback method for the `OrganizationPreview` window.
+
+        If confirmed, it starts the actual file organization process.
+
+        Args:
+            confirmed (bool): True if the user confirmed the organization.
+            final_files_info (list): The final list of files to be organized, potentially modified by the user.
+        """
         if confirmed:
             self.log_message("Prévia confirmada. Iniciando organização real...")
             self.preview_with_local_button.configure(state="disabled")
@@ -317,6 +399,11 @@ class App(ctk.CTk):
         self._update_preview_button_states() 
 
     def _execute_organization_real(self, files_info):
+        """Performs the actual file moving based on the confirmed organization plan.
+
+        Args:
+            files_info (list): The list of files and their target categories.
+        """
         self.log_message("Iniciando a movimentação dos arquivos...")
         self.after(0, lambda: self.progress_bar.grid())
         self.after(0, lambda: self.progress_label.grid())
@@ -352,7 +439,7 @@ class App(ctk.CTk):
                 self.after(0, lambda fn=os.path.basename(original_file_path), cc=classified_category: self.log_message(f"Arquivo '{fn}' movido para '{cc}'."))
             except Exception as e: self.after(0, lambda fn=filename, err=str(e): self.log_message(f"Erro ao mover '{fn}': {err}"))
             self.update_progress(current_val=i + 1, total_val=total_files_to_move)
-        
+
         self.after(0, lambda: self.log_message("Organização finalizada com sucesso!"))
         self.after(0, lambda: self.progress_bar.grid_remove())
         self.after(0, lambda: self.progress_label.grid_remove())
@@ -362,6 +449,14 @@ class App(ctk.CTk):
 
 
     def update_user_credits(self, credits_used=1):
+        """Updates the user's credit count in the Supabase database.
+
+        Args:
+            credits_used (int, optional): The number of credits to deduct. Defaults to 1.
+
+        Returns:
+            bool: True if the update was successful, False otherwise.
+        """
         if not config.supabase or not self.current_user or not self.user_session: self.log_message("Erro: Usuário não logado."); return False
         try:
             current_db_credits_resp = config.supabase.table("profiles").select("credits_remaining").eq("id", self.current_user.id).single().execute()
@@ -380,6 +475,7 @@ class App(ctk.CTk):
         except Exception as e: self.log_message(f"Erro ao atualizar créditos: {e}"); return False
 
     def open_category_manager(self):
+        """Opens the category management window."""
         self.select_folder_button.configure(state="disabled")
         self.manage_categories_button.configure(state="disabled")
         self.preview_with_local_button.configure(state="disabled")
@@ -388,12 +484,23 @@ class App(ctk.CTk):
         category_manager_window.grab_set()
     
     def handle_category_manager_close(self, updated_categories):
+        """Callback method for the `CategoryManager` window.
+
+        Updates the application's current categories if changes were saved.
+
+        Args:
+            updated_categories (dict or None): The updated dictionary of categories, or None if cancelled.
+        """
         if updated_categories is not None: self.current_categories = updated_categories; self.log_message("Categorias atualizadas.")
         else: self.log_message("Gerenciamento de categorias cancelado.")
         self._update_preview_button_states()
 
 
 class LoginWindow(ctk.CTkToplevel):
+    """A modal window for user login and registration.
+
+    Handles user authentication against Supabase and retrieves user profile data.
+    """
     def __init__(self, master):
         super().__init__(master)
 
@@ -423,10 +530,12 @@ class LoginWindow(ctk.CTkToplevel):
         self._create_initial_view()
 
     def _clear_frame(self):
+        """Destroys all widgets within the main form frame to switch views."""
         for widget in self.form_frame.winfo_children():
             widget.destroy()
 
     def _create_initial_view(self):
+        """Creates the initial view with 'Login' and 'Create Account' buttons."""
         self._clear_frame()
         self.title("Acesso DocuSmart")
 
@@ -448,6 +557,7 @@ class LoginWindow(ctk.CTkToplevel):
         self.status_label.pack(pady=(20, 10))
 
     def _create_login_view(self):
+        """Creates the view with email/password fields for logging in."""
         self._clear_frame()
         self.title("Login")
 
@@ -472,6 +582,7 @@ class LoginWindow(ctk.CTkToplevel):
         self.status_label.pack(pady=(15, 10))
 
     def _create_signup_view(self):
+        """Creates the view with fields for creating a new account."""
         self._clear_frame()
         self.title("Criar Nova Conta")
 
@@ -497,10 +608,12 @@ class LoginWindow(ctk.CTkToplevel):
         self.status_label.pack(pady=(15, 10))
 
     def _is_valid_email(self, email):
+        """Validates an email address format using regex."""
         regex = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
         return re.match(regex, email) is not None
 
     def _on_close_login_window(self):
+        """Handles the event when the login window is closed by the user."""
         if self.master.winfo_exists() and not self.master.user_session:
             self.master.log_message("Login não concluído. Encerrando.")
             self.master.destroy()
@@ -509,6 +622,7 @@ class LoginWindow(ctk.CTkToplevel):
                 self.destroy()
 
     def _attempt_login(self):
+        """Handles the login attempt, validating inputs and calling Supabase auth."""
         email = self.email_entry.get().strip()
         password = self.password_entry.get().strip()
         
@@ -565,6 +679,7 @@ class LoginWindow(ctk.CTkToplevel):
             self.master.current_user = None
 
     def _attempt_signup(self):
+        """Handles the signup attempt, validating inputs and calling Supabase auth."""
         full_name = self.full_name_entry.get().strip()
         email = self.email_entry.get().strip()
         password = self.password_entry.get().strip()
@@ -627,6 +742,7 @@ class LoginWindow(ctk.CTkToplevel):
             print(f"Signup error: {e}")
 
     def _open_password_reset_link(self):
+        """Opens the password reset URL in the user's default web browser."""
         reset_link = "https://preview--smartdoc-organizer-ai.lovable.app/password-reset"
         try:
             webbrowser.open_new_tab(reset_link)
@@ -641,6 +757,11 @@ class LoginWindow(ctk.CTkToplevel):
 
 
 class CategoryManager(ctk.CTkToplevel):
+    """A modal window for managing document categories.
+
+    Allows users to add new categories, remove existing ones, edit descriptions,
+    and reset to default categories.
+    """
     def __init__(self, master):
         super().__init__(master)
 
@@ -651,6 +772,7 @@ class CategoryManager(ctk.CTkToplevel):
         self.geometry(f"{window_width}x{window_height}+{center_x}+{center_y}")
         self.resizable(False, False)
 
+        # --- Inherit properties from master ---
         self.master = master
         self.current_categories = master.current_categories.copy()
         self.default_categories = master.default_categories 
@@ -667,6 +789,7 @@ class CategoryManager(ctk.CTkToplevel):
         self.disabled_entry_bg_color = master.disabled_entry_bg_color
         self.configure(fg_color=self.bg_color)
         
+        # --- Layout ---
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(0, weight=0)
         self.grid_rowconfigure(1, weight=1)
@@ -675,6 +798,7 @@ class CategoryManager(ctk.CTkToplevel):
 
         ctk.CTkLabel(self, text="Defina ou Edite Suas Categorias de Documentos", font=self.big_font, text_color=self.text_color).grid(row=0, column=0, padx=20, pady=(20,10))
 
+        # --- Category List Frame ---
         self.category_list_frame = ctk.CTkScrollableFrame(self, label_text="Categorias Atuais e Descrições", height=350, fg_color=self.frame_color, corner_radius=10, label_font=self.medium_font)
         self.category_list_frame.grid(row=1, column=0, padx=20, pady=10, sticky="nsew")
         self.category_list_frame.grid_columnconfigure(0, weight=1)
@@ -684,6 +808,7 @@ class CategoryManager(ctk.CTkToplevel):
         self.category_widgets = {}
         self.load_categories_to_display()
 
+        # --- Add New Category Frame ---
         self.add_category_frame = ctk.CTkFrame(self, fg_color=self.frame_color, corner_radius=10)
         self.add_category_frame.grid(row=2, column=0, padx=20, pady=10, sticky="ew")
         self.add_category_frame.grid_columnconfigure(1, weight=1) 
@@ -700,7 +825,7 @@ class CategoryManager(ctk.CTkToplevel):
             text_color=self.text_color
         )
         self.new_category_name_entry.grid(row=1, column=1, padx=10, pady=5, sticky="ew")
-        
+
         self.new_category_name_entry.bind("<KeyRelease>", self._on_category_name_change)
 
         description_frame = ctk.CTkFrame(self.add_category_frame, fg_color="transparent")
@@ -723,6 +848,7 @@ class CategoryManager(ctk.CTkToplevel):
         self.add_category_button = ctk.CTkButton(self.add_category_frame, text="➕ Adicionar Categoria", command=self.add_new_category, font=self.medium_font, fg_color=self.primary_color, hover_color="#2980b9")
         self.add_category_button.grid(row=3, column=0, columnspan=2, padx=10, pady=(15,10), sticky="ew")
 
+        # --- Main Action Buttons ---
         self.action_buttons_frame = ctk.CTkFrame(self, fg_color="transparent")
         self.action_buttons_frame.grid(row=3, column=0, padx=20, pady=(10,20), sticky="ew")
         self.action_buttons_frame.grid_columnconfigure((0,1,2), weight=1)
@@ -737,9 +863,11 @@ class CategoryManager(ctk.CTkToplevel):
         self.protocol("WM_DELETE_WINDOW", self._cancel_and_close)
 
     def _on_category_name_change(self, event=None):
+        """Enables the 'Suggest Description' button when the user types a category name."""
         self.generate_desc_button.configure(state="normal")
 
     def _generate_description_ai_threaded(self):
+        """Starts a new thread to generate a category description using AI to avoid blocking the UI."""
         category_name = self.new_category_name_entry.get().strip()
         if not category_name:
             CTkMessagebox.CTkMessagebox(master=self, title="Aviso", message="Por favor, digite um nome para a categoria primeiro.", icon="warning")
@@ -754,6 +882,11 @@ class CategoryManager(ctk.CTkToplevel):
         thread.start()
 
     def _generate_description_ai(self, category_name):
+        """Calls the Supabase Edge Function to generate a description for the given category name.
+
+        Args:
+            category_name (str): The name of the category to get a description for.
+        """
         is_success = False
         try:
             response_bytes = config.supabase.functions.invoke(
@@ -776,6 +909,12 @@ class CategoryManager(ctk.CTkToplevel):
         self.after(0, self._update_description_from_ai, description, is_success)
         
     def _update_description_from_ai(self, description, is_success):
+        """Updates the description entry box with the result from the AI call.
+
+        Args:
+            description (str): The description text (or error message) to display.
+            is_success (bool): Whether the AI call was successful.
+        """
         self.new_category_description_entry.delete("0.0", "end")
         self.new_category_description_entry.insert("0.0", description)
         
@@ -785,6 +924,7 @@ class CategoryManager(ctk.CTkToplevel):
             self.generate_desc_button.configure(state="normal", text="Sugerir Descrição com IA ✨")
 
     def load_categories_to_display(self):
+        """Clears and redraws the list of categories in the scrollable frame."""
         for widget in self.category_list_frame.winfo_children(): widget.destroy()
         self.category_widgets = {}
         row_idx = 0
@@ -812,6 +952,7 @@ class CategoryManager(ctk.CTkToplevel):
         if not self.current_categories: ctk.CTkLabel(self.category_list_frame, text="Nenhuma categoria definida.", font=self.medium_font, text_color="gray").grid(row=0, column=0, columnspan=3, padx=5, pady=10)
 
     def add_new_category(self):
+        """Adds a new category from the input fields to the current list."""
         name = self.new_category_name_entry.get().strip()
         if not name: 
             CTkMessagebox.CTkMessagebox(master=self, title="Aviso", message="O nome da categoria não pode estar vazio.", icon="warning")
@@ -839,6 +980,11 @@ class CategoryManager(ctk.CTkToplevel):
         self.generate_desc_button.configure(state="disabled")
 
     def remove_category(self, category_name):
+        """Removes a category from the list after user confirmation.
+
+        Args:
+            category_name (str): The name of the category to remove.
+        """
         if category_name.lower() in ["outros", "imagens"]:
             self.master.log_message("Não é possível remover categorias essenciais.")
             CTkMessagebox.CTkMessagebox(master=self, title="Aviso", message="Não é possível remover categorias essenciais ('Outros', 'Imagens').", icon="warning")
@@ -850,6 +996,7 @@ class CategoryManager(ctk.CTkToplevel):
             self.load_categories_to_display()
 
     def reset_categories(self):
+        """Resets the category list to the application defaults after user confirmation."""
         response = CTkMessagebox.CTkMessagebox(master=self,title="Confirmar Redefinição",message="Redefinir para categorias padrão?\nCategorias personalizadas serão perdidas.",icon="warning",option_1="Não",option_2="Sim").get()
         if response == "Sim":
             self.current_categories = self.master.default_categories.copy()
@@ -857,6 +1004,7 @@ class CategoryManager(ctk.CTkToplevel):
             self.load_categories_to_display()
 
     def save_and_close(self):
+        """Saves the current state of categories and closes the window."""
         temp_categories = {}
         valid_save = True
         for cat_name, widgets in self.category_widgets.items():
@@ -883,12 +1031,20 @@ class CategoryManager(ctk.CTkToplevel):
         self.destroy()
 
     def _cancel_and_close(self):
+        """Closes the window without saving any changes."""
         self.master.handle_category_manager_close(None)
         self.destroy()
 
 
 class OrganizationPreview(ctk.CTkToplevel):
+    """A modal window to display the proposed file organization plan.
+
+    This window shows the user which files will be moved into which category folders.
+    It allows the user to modify the classification for individual files before
+    confirming or canceling the entire operation.
+    """
     def __init__(self, master, files_info, structure_info, available_categories):
+        """Initializes the preview window."""
         super().__init__(master)
 
         self.title("Prévia da Organização")
@@ -901,6 +1057,7 @@ class OrganizationPreview(ctk.CTkToplevel):
         self.geometry(f"{window_width}x{window_height}+{center_x}+{center_y}")
 
         self.resizable(False, False)
+        # --- Inherit properties and data from master ---
         self.master = master
         self.files_info = list(files_info)
         self.structure_info = structure_info
@@ -917,6 +1074,8 @@ class OrganizationPreview(ctk.CTkToplevel):
         self.frame_color=master.frame_color
 
         self.small_italic_font = ctk.CTkFont(family="Arial", size=12, slant="italic")
+
+        # --- Layout ---
         self.configure(fg_color=self.bg_color)
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(0, weight=0)
@@ -924,10 +1083,14 @@ class OrganizationPreview(ctk.CTkToplevel):
         self.grid_rowconfigure(2, weight=0)
 
         ctk.CTkLabel(self, text="Verifique a prévia da organização antes de confirmar:", font=self.big_font, text_color=self.text_color).grid(row=0, column=0, padx=20, pady=10, sticky="w")
+
+        # --- Preview Content Frame ---
         self.preview_frame = ctk.CTkScrollableFrame(self, fg_color=self.frame_color, corner_radius=10)
         self.preview_frame.grid(row=1, column=0, padx=20, pady=10, sticky="nsew")
         self.preview_frame.grid_columnconfigure(0, weight=1) 
         self._display_preview_content()
+
+        # --- Action Buttons ---
         self.action_buttons_frame = ctk.CTkFrame(self, fg_color="transparent")
         self.action_buttons_frame.grid(row=2, column=0, padx=20, pady=10, sticky="ew")
         self.action_buttons_frame.grid_columnconfigure((0,1), weight=1)
@@ -938,6 +1101,7 @@ class OrganizationPreview(ctk.CTkToplevel):
         self.protocol("WM_DELETE_WINDOW", self._cancel_organization)
 
     def _rebuild_structure_info(self):
+        """Rebuilds the `structure_info` dictionary based on the current `files_info` list."""
         new_structure_info = {cat: [] for cat in self.master.current_categories.keys()}
         if any(fi[1] == "Outros (Não processável)" for fi in self.files_info) and "Outros (Não processável)" not in new_structure_info:
             new_structure_info["Outros (Não processável)"] = []
@@ -947,6 +1111,7 @@ class OrganizationPreview(ctk.CTkToplevel):
         self.structure_info = new_structure_info
 
     def _display_preview_content(self):
+        """Clears and redraws the content of the preview frame."""
         for widget in self.preview_frame.winfo_children(): widget.destroy()
         row_idx = 0
         ctk.CTkLabel(self.preview_frame, text="Estrutura de Pastas e Conteúdo Estimado:", font=self.medium_font, text_color=self.text_color).grid(row=row_idx, column=0, columnspan=2, padx=5, pady=5, sticky="w")
@@ -980,11 +1145,23 @@ class OrganizationPreview(ctk.CTkToplevel):
                 row_idx += 1
 
     def _open_modify_dialog(self, filename, current_category):
+        """Opens the `ModifyCategory` dialog for a specific file.
+
+        Args:
+            filename (str): The name of the file to modify.
+            current_category (str): The file's current assigned category.
+        """
         valid_categories_for_selection = [cat for cat in self.master.current_categories.keys() if cat != "Outros (Não processável)"]
         modify_window = ModifyCategory(self, filename, current_category, valid_categories_for_selection)
         modify_window.grab_set()
 
     def handle_modify_category_close(self, original_filename, new_category):
+        """Callback for the `ModifyCategory` dialog. Updates the file's category and redraws the preview.
+
+        Args:
+            original_filename (str): The name of the file that was modified.
+            new_category (str or None): The new category selected by the user, or None if cancelled.
+        """
         if new_category is not None: 
             for i, file_data in enumerate(self.files_info):
                 fn, current_cat_before_modify, dates, original_method = file_data 
@@ -996,18 +1173,26 @@ class OrganizationPreview(ctk.CTkToplevel):
             self._display_preview_content()
 
     def _confirm_organization(self):
+        """Confirms the organization plan and closes the preview window."""
         self.confirmed = True
         self.master.handle_preview_confirmation(self.confirmed, self.files_info)
         self.destroy()
 
     def _cancel_organization(self):
+        """Cancels the organization and closes the preview window."""
         self.confirmed = False
         self.master.handle_preview_confirmation(self.confirmed, self.files_info)
         self.destroy()
 
 
 class ModifyCategory(ctk.CTkToplevel):
-    def __init__(self, master_preview, filename, current_category, all_valid_categories): 
+    """A small dialog window to change the category of a single file.
+
+    This is opened from the `OrganizationPreview` window.
+    """
+    def __init__(self, master_preview, filename, current_category, all_valid_categories):
+        """Initializes the modify category dialog.
+        """
         super().__init__(master_preview) 
 
         self.title("Modificar Categoria")
@@ -1019,6 +1204,7 @@ class ModifyCategory(ctk.CTkToplevel):
         self.geometry(f"{window_width}x{window_height}+{center_x}+{center_y}")
         self.resizable(False, False)
 
+        # --- Inherit properties and data ---
         self.master_preview = master_preview
         self.original_filename = filename
         self.current_category_on_open = current_category
@@ -1027,6 +1213,7 @@ class ModifyCategory(ctk.CTkToplevel):
 
         app_master = master_preview.master 
 
+        # --- UI Elements ---
         self.medium_font = app_master.medium_font
         self.small_font = app_master.small_font
         self.text_color = app_master.text_color
@@ -1066,18 +1253,22 @@ class ModifyCategory(ctk.CTkToplevel):
         self.protocol("WM_DELETE_WINDOW", self._cancel_and_close)
 
     def _option_menu_callback(self, choice):
+        """Updates the selected category when the user makes a choice in the dropdown."""
         self.new_category_selected = choice
 
     def _confirm_selection(self):
+        """Confirms the new category selection and closes the dialog."""
         self.master_preview.handle_modify_category_close(self.original_filename, self.new_category_selected)
         self.destroy()
 
     def _cancel_and_close(self):
+        """Closes the dialog without making any changes."""
         self.master_preview.handle_modify_category_close(self.original_filename, None)
         self.destroy()
 
 
 if __name__ == "__main__":
+    # --- Application Entry Point ---
     ctk.set_appearance_mode("System")
     ctk.set_default_color_theme("blue")
     try:
