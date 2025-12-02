@@ -2,6 +2,8 @@
 
 > **Organizador Inteligente de Documentos com IA Híbrida (Local + Cloud)**
 
+[![Website](https://img.shields.io/badge/Acesse_o_Site-DocuSmart_Web-2ea44f?style=for-the-badge&logo=google-chrome&logoColor=white)](https://preview--smartdoc-organizer-ai.lovable.app/)
+
 Aplicação desktop para classificação e organização automática de arquivos digitais. O DocuSmart combina privacidade e eficiência através de uma arquitetura híbrida: utiliza o modelo **SBERT** localmente para triagem rápida e sem custos, e integra o **Google Gemini** (via Supabase Edge Functions) para análises semânticas complexas na nuvem.
 
 ---
